@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model VehicleType {
@@ -54,6 +55,7 @@ model Booking {
   flightDate                 DateTime?
   flightNote                 String?
   passengers                 Int
+  childSeats                 Int         @default(0)
   luggageSmall               Int         @default(0)
   luggageMedium              Int         @default(0)
   luggageLarge               Int         @default(0)
@@ -64,6 +66,7 @@ model Booking {
   pricingBaseJpy             Int
   pricingNightJpy            Int         @default(0)
   pricingUrgentJpy           Int         @default(0)
+  pricingChildSeatJpy        Int         @default(0)
   pricingManualAdjustmentJpy Int         @default(0)
   pricingTotalJpy            Int
   pricingNote                String?

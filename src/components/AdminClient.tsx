@@ -55,6 +55,16 @@ type Labels = {
   loginPlaceholder: string;
   urgentTag: string;
   close: string;
+  export: string;
+  dateType: string;
+  dateRange: string;
+  dateTypeCreated: string;
+  dateTypePickup: string;
+  today: string;
+  yesterday: string;
+  thisMonth: string;
+  all: string;
+  filter: string;
   statuses: Record<string, string>;
   vehicles: Record<string, string>;
 };
@@ -66,6 +76,11 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
   const [rows, setRows] = useState<AdminRow[]>([]);
   const [currency, setCurrency] = useState<Currency>("JPY");
 
+  // Filters
+  const [dateType, setDateType] = useState<"createdAt" | "pickupTime">("createdAt");
+  const [filterPreset, setFilterPreset] = useState<"TODAY" | "YESTERDAY" | "THIS_MONTH" | "ALL">("ALL");
+  const [filterStatus, setFilterStatus] = useState<string>("ALL");
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingRow = useMemo(() => rows.find((r) => r.id === editingId) ?? null, [rows, editingId]);
   const [status, setStatus] = useState<string>("CONFIRMED");
@@ -76,16 +91,88 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
     setCurrency(getCurrencyFromCookie());
   }, []);
 
+  function getFilterDates() {
+    const now = new Date();
+    const start = new Date();
+    const end = new Date();
+
+    if (filterPreset === "TODAY") {
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      return { startDate: start.toISOString(), endDate: end.toISOString() };
+    }
+    if (filterPreset === "YESTERDAY") {
+      start.setDate(now.getDate() - 1);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(now.getDate() - 1);
+      end.setHours(23, 59, 59, 999);
+      return { startDate: start.toISOString(), endDate: end.toISOString() };
+    }
+    if (filterPreset === "THIS_MONTH") {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(now.getMonth() + 1);
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
+      return { startDate: start.toISOString(), endDate: end.toISOString() };
+    }
+    return { startDate: null, endDate: null };
+  }
+
   async function load() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/orders", { headers: { "x-admin-token": token } });
+      const { startDate, endDate } = getFilterDates();
+      const params = new URLSearchParams();
+      params.append("dateType", dateType);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      if (filterStatus !== "ALL") params.append("status", filterStatus);
+
+      const res = await fetch(`/api/admin/orders?${params.toString()}`, {
+        headers: { "x-admin-token": token }
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "加载失败");
       setRows(data.rows ?? []);
     } catch (e: any) {
       setError(e?.message ?? "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function exportOrders() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { startDate, endDate } = getFilterDates();
+      const params = new URLSearchParams();
+      params.append("dateType", dateType);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      if (filterStatus !== "ALL") params.append("status", filterStatus);
+
+      const res = await fetch(`/api/admin/orders/export?${params.toString()}`, {
+        headers: { "x-admin-token": token }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? "导出失败");
+      }
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `orders_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (e: any) {
+      setError(e?.message ?? "导出失败");
     } finally {
       setLoading(false);
     }
@@ -153,6 +240,64 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
 
       <div className="p-5 rounded-2xl bg-white border border-slate-200">
         <div className="font-semibold">{labels.orders}</div>
+        
+        {/* Filter Controls */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <div className="text-xs text-slate-500 mb-1">{labels.dateType}</div>
+            <select
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+              value={dateType}
+              onChange={(e) => setDateType(e.target.value as any)}
+            >
+              <option value="createdAt">{labels.dateTypeCreated}</option>
+              <option value="pickupTime">{labels.dateTypePickup}</option>
+            </select>
+          </div>
+          <div>
+            <div className="text-xs text-slate-500 mb-1">{labels.dateRange}</div>
+            <select
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+              value={filterPreset}
+              onChange={(e) => setFilterPreset(e.target.value as any)}
+            >
+              <option value="ALL">{labels.all}</option>
+              <option value="TODAY">{labels.today}</option>
+              <option value="YESTERDAY">{labels.yesterday}</option>
+              <option value="THIS_MONTH">{labels.thisMonth}</option>
+            </select>
+          </div>
+          <div>
+            <div className="text-xs text-slate-500 mb-1">{labels.status}</div>
+            <select
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="ALL">{labels.all}</option>
+              {Object.entries(labels.statuses).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end gap-2">
+            <button
+              onClick={load}
+              disabled={loading || !token}
+              className="flex-1 px-4 py-2 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 disabled:opacity-60 text-sm font-medium"
+            >
+              {labels.filter}
+            </button>
+            <button
+              onClick={exportOrders}
+              disabled={loading || !token}
+              className="flex-1 px-4 py-2 rounded-xl bg-brand-50 text-brand-700 border border-brand-100 hover:bg-brand-100 disabled:opacity-60 text-sm font-medium"
+            >
+              {labels.export}
+            </button>
+          </div>
+        </div>
+
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="text-left text-slate-600">

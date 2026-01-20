@@ -97,6 +97,7 @@ export default async function HomePage() {
                     to: t("search.to"),
                     pickupTime: t("search.pickupTime"),
                     passengers: t("search.passengers"),
+                    childSeats: t("search.childSeats"),
                     luggageSmall: t("search.luggageSmall"),
                     luggageMedium: t("search.luggageMedium"),
                     luggageLarge: t("search.luggageLarge"),

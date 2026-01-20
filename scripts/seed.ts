@@ -56,14 +56,21 @@ async function main() {
   const byName = new Map(allVehicles.map((v) => [v.name, v.id]));
 
   // Pricing rules (demo)
-  const existingRules = await prisma.pricingRule.findMany();
-  if (existingRules.length === 0) {
-    const routes = [
-      { fromArea: "NRT", toArea: "Shinjuku", tripType: "PICKUP" as const },
-      { fromArea: "HND", toArea: "Shibuya", tripType: "PICKUP" as const },
-      { fromArea: "KIX", toArea: "Osaka", tripType: "PICKUP" as const },
-      { fromArea: "Tokyo", toArea: "HND", tripType: "DROPOFF" as const }
-    ];
+  // 清除旧的报价规则，重新生成
+  await prisma.pricingRule.deleteMany();
+  
+  const airports = ["NRT", "HND", "KIX", "NGO", "CTS"];
+    const popularAreas = ["Shinjuku", "Shibuya", "Ginza", "Asakusa", "Ueno", "Ikebukuro", "Namba", "Umeda", "Dotonbori", "Gion", "Kyoto Station"];
+    
+    const routes: Array<{ fromArea: string; toArea: string; tripType: "PICKUP" | "DROPOFF" }> = [];
+    
+    // 生成所有机场到热门区域的接机路由
+    for (const airport of airports) {
+      for (const area of popularAreas) {
+        routes.push({ fromArea: airport, toArea: area, tripType: "PICKUP" });
+        routes.push({ fromArea: area, toArea: airport, tripType: "DROPOFF" });
+      }
+    }
 
     const vehiclePrice: Array<{ name: string; base: number; night: number; urgent: number }> = [
       { name: "5座车（经济型）", base: 16000, night: 2000, urgent: 3000 },
@@ -91,7 +98,6 @@ async function main() {
       }
     }
   }
-}
 
 main()
   .then(async () => {

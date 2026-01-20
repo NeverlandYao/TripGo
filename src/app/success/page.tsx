@@ -47,6 +47,8 @@ export default async function SuccessPage({
     );
   }
 
+  const b = booking as any;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex items-center justify-center py-12 px-4">
       <div className="max-w-2xl w-full">
@@ -76,23 +78,43 @@ export default async function SuccessPage({
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between py-2 border-b border-slate-200">
                 <span className="text-slate-500 font-medium">{t("orders.id")}</span>
-                <span className="font-mono font-semibold text-slate-900">{booking.id}</span>
+                <span className="font-mono font-semibold text-slate-900">{b.id}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-slate-200">
                 <span className="text-slate-500 font-medium">{t("orders.vehicle")}</span>
                 <span className="font-semibold text-slate-900">
-                  {locale.startsWith("en") ? (t(`vehicle.${booking.vehicleType.id}`) || booking.vehicleType.name) : booking.vehicleType.name}
+                  {locale.startsWith("en") ? (t(`vehicle.${b.vehicleType.id}`) || b.vehicleType.name) : b.vehicleType.name}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-slate-200">
                 <span className="text-slate-500 font-medium">{t("success.pickupTime")}</span>
-                <span className="font-semibold text-slate-900">{formatDateTimeJST(booking.pickupTime, locale)}</span>
+                <span className="font-semibold text-slate-900">{formatDateTimeJST(b.pickupTime, locale)}</span>
               </div>
+              {b.flightNumber && (
+                <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                  <span className="text-slate-500 font-medium">{t("success.flightNumber")}</span>
+                  <span className="font-semibold text-slate-900">{b.flightNumber}</span>
+                </div>
+              )}
+              <div className="flex flex-col gap-1 py-2 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">{t("success.pickupLocation")}</span>
+                <span className="text-sm text-slate-900">{b.pickupLocation}</span>
+              </div>
+              <div className="flex flex-col gap-1 py-2 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">{t("success.dropoffLocation")}</span>
+                <span className="text-sm text-slate-900">{b.dropoffLocation}</span>
+              </div>
+              {b.childSeats > 0 && (
+                <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                  <span className="text-slate-500 font-medium">{t("success.childSeats")}</span>
+                  <span className="font-semibold text-slate-900">{b.childSeats}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between py-2">
                 <span className="text-slate-500 font-medium">{t("orders.status")}</span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="font-semibold text-slate-900">{t(`status.${booking.status}`)}</span>
-                  {booking.isUrgent ? (
+                  <span className="font-semibold text-slate-900">{t(`status.${b.status}`)}</span>
+                  {b.isUrgent ? (
                     <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-xs font-medium">
                       {t("orders.urgentTag")}
                     </span>

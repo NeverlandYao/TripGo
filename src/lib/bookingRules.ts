@@ -1,4 +1,5 @@
 export const JAPAN_TZ = "Asia/Tokyo";
+export const CHILD_SEAT_FEE_JPY = 1000; // 约合 50 CNY
 
 export function hoursBetween(nowMs: number, futureMs: number) {
   return (futureMs - nowMs) / (1000 * 60 * 60);

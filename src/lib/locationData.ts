@@ -141,3 +141,33 @@ export function searchLocations(query: string, locale: string = "zh"): Array<Pop
   return results.slice(0, 10);
 }
 
+/**
+ * 从选中的地点字符串中提取用于匹配报价规则的代码
+ * 1. 如果是机场格式 "NRT T1 - ..." -> 返回 "NRT"
+ * 2. 如果是酒店名，尝试找到对应的区域代码
+ * 3. 否则返回原字符串或匹配到的区域代码
+ */
+export function getPricingAreaCode(location: string): string {
+  if (!location) return "";
+
+  // 1. 检查是否为机场格式 (e.g., "NRT T1 - ...")
+  const airportMatch = location.match(/^([A-Z]{3})\s/);
+  if (airportMatch) {
+    return airportMatch[1];
+  }
+
+  // 2. 检查是否为热门区域的代码或名称
+  const area = POPULAR_AREAS.find(
+    (a) => a.code === location || a.name.zh === location || a.name.en === location
+  );
+  if (area) return area.code;
+
+  // 3. 检查是否为酒店
+  const hotel = POPULAR_HOTELS.find(
+    (h) => h.code === location || h.name.zh === location || h.name.en === location
+  );
+  if (hotel) return hotel.area; // 返回酒店所在的区域代码
+
+  return location;
+}
+

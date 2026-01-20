@@ -6,6 +6,7 @@ export const SearchSchema = z.object({
   toArea: z.string().min(2),
   pickupTime: z.string().min(1),
   passengers: z.coerce.number().int().min(1).max(50),
+  childSeats: z.coerce.number().int().min(0).max(10).default(0),
   luggageSmall: z.coerce.number().int().min(0).max(20).default(0),
   luggageMedium: z.coerce.number().int().min(0).max(20).default(0),
   luggageLarge: z.coerce.number().int().min(0).max(20).default(0)
@@ -19,6 +20,7 @@ export const CreateBookingSchema = z.object({
   pickupLocation: z.string().min(2),
   dropoffLocation: z.string().min(2),
   passengers: z.coerce.number().int().min(1).max(50),
+  childSeats: z.coerce.number().int().min(0).max(10).default(0),
   luggageSmall: z.coerce.number().int().min(0).max(20).default(0),
   luggageMedium: z.coerce.number().int().min(0).max(20).default(0),
   luggageLarge: z.coerce.number().int().min(0).max(20).default(0),
@@ -29,6 +31,14 @@ export const CreateBookingSchema = z.object({
   contactPhone: z.string().min(5),
   contactEmail: z.string().email(),
   contactNote: z.string().optional()
+}).refine((data) => {
+  if (data.tripType === "PICKUP" && (!data.flightNumber || data.flightNumber.trim() === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Flight number is required for pickup",
+  path: ["flightNumber"]
 });
 
 export const CancelBookingSchema = z.object({

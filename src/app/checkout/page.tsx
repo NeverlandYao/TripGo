@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { SearchSchema } from "@/lib/validators";
-import { computeNightFee, isUrgentOrder } from "@/lib/bookingRules";
+import { computeNightFee, isUrgentOrder, CHILD_SEAT_FEE_JPY } from "@/lib/bookingRules";
 import { CheckoutForm } from "@/components/CheckoutForm";
 import { formatDateTimeJST } from "@/lib/timeFormat";
 import { formatMoneyFromJpy, getCurrency } from "@/lib/currency";
 import { getT, getLocale } from "@/lib/i18n";
 import { z } from "zod";
-import { findAirportByCode, findAreaByCode, POPULAR_HOTELS } from "@/lib/locationData";
+import { findAirportByCode, findAreaByCode, POPULAR_HOTELS, getPricingAreaCode } from "@/lib/locationData";
 
 export default async function CheckoutPage({
   searchParams
@@ -45,6 +45,7 @@ export default async function CheckoutPage({
     toArea: params.toArea,
     pickupTime: params.pickupTime,
     passengers: params.passengers,
+    childSeats: params.childSeats ?? 0,
     luggageSmall: params.luggageSmall ?? 0,
     luggageMedium: params.luggageMedium ?? 0,
     luggageLarge: params.luggageLarge ?? 0,
@@ -75,6 +76,9 @@ export default async function CheckoutPage({
   const isUrgent = isUrgentOrder(now, pickupTime);
   const isNight = computeNightFee(pickupTime);
 
+  const fromCode = getPricingAreaCode(q.fromArea);
+  const toCode = getPricingAreaCode(q.toArea);
+
   const vehicle = await prisma.vehicleType.findUnique({ where: { id: q.vehicleTypeId } });
   if (!vehicle) {
     return (
@@ -92,7 +96,7 @@ export default async function CheckoutPage({
   }
 
   const rule = await prisma.pricingRule.findFirst({
-    where: { fromArea: q.fromArea, toArea: q.toArea, tripType: q.tripType, vehicleTypeId: vehicle.id }
+    where: { fromArea: fromCode, toArea: toCode, tripType: q.tripType, vehicleTypeId: vehicle.id }
   });
 
   if (!rule) {
@@ -119,7 +123,8 @@ export default async function CheckoutPage({
   const base = rule.basePriceJpy;
   const night = isNight ? rule.nightFeeJpy : 0;
   const urgent = isUrgent ? rule.urgentFeeJpy : 0;
-  const total = base + night + urgent;
+  const childSeatFee = (q.childSeats || 0) * CHILD_SEAT_FEE_JPY;
+  const total = base + night + urgent + childSeatFee;
 
   const vKey = vehicleKeyMap[vehicle.name];
   const displayName = vKey ? t(`vehicle.${vKey}`) : vehicle.name;
@@ -189,6 +194,7 @@ export default async function CheckoutPage({
                   toArea: q.toArea,
                   pickupTime: q.pickupTime,
                   passengers: q.passengers,
+                  childSeats: q.childSeats,
                   luggageSmall: q.luggageSmall,
                   luggageMedium: q.luggageMedium,
                   luggageLarge: q.luggageLarge,
@@ -203,6 +209,7 @@ export default async function CheckoutPage({
                   contactPhone: t("form.contactPhone"),
                   contactEmail: t("form.contactEmail"),
                   special: t("form.special"),
+                  childSeatFee: t("checkout.childSeatFee"),
                   submit: t("form.submit"),
                   submitting: t("form.submitting"),
                   agree: t("form.agree"),
@@ -250,6 +257,14 @@ export default async function CheckoutPage({
                 <div className="flex justify-between items-center py-2 border-b border-slate-200">
                   <span className="text-slate-600">{t("checkout.urgentFee")}</span>
                   <span className="font-medium text-rose-600">{formatMoneyFromJpy(urgent, currency, locale)}</span>
+                </div>
+              ) : null}
+              {childSeatFee > 0 ? (
+                <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                  <span className="text-slate-600">
+                    {t("checkout.childSeatFee")} ({q.childSeats})
+                  </span>
+                  <span className="font-medium text-slate-900">{formatMoneyFromJpy(childSeatFee, currency, locale)}</span>
                 </div>
               ) : null}
               <div className="border-t-2 border-slate-300 mt-4 pt-4 flex justify-between items-center">

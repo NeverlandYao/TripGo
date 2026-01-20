@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CreateBookingSchema } from "@/lib/validators";
-import { computeNightFee, isUrgentOrder } from "@/lib/bookingRules";
+import { computeNightFee, isUrgentOrder, CHILD_SEAT_FEE_JPY } from "@/lib/bookingRules";
 import { getT } from "@/lib/i18n";
+import { getPricingAreaCode } from "@/lib/locationData";
 
 export async function POST(req: Request) {
   const { t } = await getT();
@@ -24,10 +25,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("api.orderNotFound") }, { status: 404 });
     }
 
+    const fromCode = getPricingAreaCode(data.fromArea);
+    const toCode = getPricingAreaCode(data.toArea);
+
     const rule = await prisma.pricingRule.findFirst({
       where: {
-        fromArea: data.fromArea,
-        toArea: data.toArea,
+        fromArea: fromCode,
+        toArea: toCode,
         tripType: data.tripType,
         vehicleTypeId: data.vehicleTypeId
       }
@@ -51,7 +55,8 @@ export async function POST(req: Request) {
     const base = rule.basePriceJpy;
     const night = isNight ? rule.nightFeeJpy : 0;
     const urgent = isUrgent ? rule.urgentFeeJpy : 0;
-    const total = base + night + urgent;
+    const childSeat = (data.childSeats || 0) * CHILD_SEAT_FEE_JPY;
+    const total = base + night + urgent + childSeat;
 
     const booking = await prisma.booking.create({
       data: {
@@ -62,6 +67,7 @@ export async function POST(req: Request) {
         flightNumber: data.flightNumber,
         flightNote: data.flightNote,
         passengers: data.passengers,
+        childSeats: data.childSeats,
         luggageSmall: data.luggageSmall,
         luggageMedium: data.luggageMedium,
         luggageLarge: data.luggageLarge,
@@ -74,8 +80,9 @@ export async function POST(req: Request) {
         pricingBaseJpy: base,
         pricingNightJpy: night,
         pricingUrgentJpy: urgent,
+        pricingChildSeatJpy: childSeat,
         pricingTotalJpy: total
-      }
+      } as any
     });
 
     return NextResponse.json({ bookingId: booking.id });

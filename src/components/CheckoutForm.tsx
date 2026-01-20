@@ -10,6 +10,7 @@ type Preset = {
   toArea: string;
   pickupTime: string;
   passengers: number;
+  childSeats: number;
   luggageSmall: number;
   luggageMedium: number;
   luggageLarge: number;
@@ -24,6 +25,7 @@ type Labels = {
   contactPhone: string;
   contactEmail: string;
   special: string;
+  childSeatFee: string;
   submit: string;
   submitting: string;
   agree: string;
@@ -77,7 +79,8 @@ export function CheckoutForm({ preset, labels, locale = "zh" }: { preset: Preset
       contactName,
       contactPhone,
       contactEmail,
-      contactNote: contactNote || undefined
+      contactNote: contactNote || undefined,
+      childSeats: preset.childSeats
     }),
     [
       preset,
@@ -88,7 +91,8 @@ export function CheckoutForm({ preset, labels, locale = "zh" }: { preset: Preset
       contactName,
       contactPhone,
       contactEmail,
-      contactNote
+      contactNote,
+      locale
     ]
   );
 
@@ -122,6 +126,7 @@ export function CheckoutForm({ preset, labels, locale = "zh" }: { preset: Preset
             value={flightNumber}
             onChange={(e) => setFlightNumber(e.target.value)}
             placeholder={labels.placeholderFlight}
+            required={preset.tripType === "PICKUP"}
           />
         </Field>
         <Field label={labels.flightNote}>

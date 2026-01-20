@@ -13,6 +13,7 @@ type Labels = {
   to: string;
   pickupTime: string;
   passengers: string;
+  childSeats: string;
   luggageSmall: string;
   luggageMedium: string;
   luggageLarge: string;
@@ -36,10 +37,37 @@ function cn(...xs: Array<string | false | null | undefined>) {
 export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?: string }) {
   const router = useRouter();
   const [tripType, setTripType] = useState<TripType>("PICKUP");
-  const [fromArea, setFromArea] = useState("NRT T1 - Narita Terminal 1");
-  const [toArea, setToArea] = useState("Shinjuku");
-  const [pickupTime, setPickupTime] = useState("2026-02-01T10:00");
+  const [fromArea, setFromArea] = useState("");
+  const [toArea, setToArea] = useState("");
+  const [pickupTime, setPickupTime] = useState("");
+
+  // 默认值逻辑
+  useMemo(() => {
+    if (!fromArea && !toArea) {
+      if (tripType === "PICKUP") {
+        setFromArea("NRT T1 - 成田机场 第一航站楼");
+        setToArea("Shinjuku");
+      } else if (tripType === "DROPOFF") {
+        setFromArea("Shinjuku");
+        setToArea("NRT T1 - 成田机场 第一航站楼");
+      } else {
+        setFromArea("");
+        setToArea("");
+      }
+    }
+  }, [tripType]);
+
+  // 设置默认时间为明天 10:00
+  useMemo(() => {
+    if (!pickupTime) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      setPickupTime(tomorrow.toISOString().slice(0, 16));
+    }
+  }, []);
   const [passengers, setPassengers] = useState(2);
+  const [childSeats, setChildSeats] = useState(0);
   const [luggageSmall, setLuggageSmall] = useState(1);
   const [luggageMedium, setLuggageMedium] = useState(0);
   const [luggageLarge, setLuggageLarge] = useState(0);
@@ -51,11 +79,12 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
     p.set("toArea", toArea);
     p.set("pickupTime", pickupTime);
     p.set("passengers", String(passengers));
+    p.set("childSeats", String(childSeats));
     p.set("luggageSmall", String(luggageSmall));
     p.set("luggageMedium", String(luggageMedium));
     p.set("luggageLarge", String(luggageLarge));
     return p.toString();
-  }, [tripType, fromArea, toArea, pickupTime, passengers, luggageSmall, luggageMedium, luggageLarge]);
+  }, [tripType, fromArea, toArea, pickupTime, passengers, childSeats, luggageSmall, luggageMedium, luggageLarge]);
 
   const tripTypeLabels: Record<TripType, string> = {
     PICKUP: labels?.pickup ?? "Pickup",
@@ -93,7 +122,7 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
         <LocationSelector
           value={fromArea}
           onChange={setFromArea}
-          label={tripType === "PICKUP" ? labels?.fromAirport : labels?.fromLocation}
+          label={tripType === "PICKUP" ? labels?.fromAirport : (tripType === "POINT_TO_POINT" ? labels?.from : labels?.fromLocation)}
           placeholder={tripType === "PICKUP" ? (labels?.placeholderAirport || labels?.selectAirport) : (labels?.placeholderLocation || labels?.selectLocation)}
           isAirport={tripType === "PICKUP"}
           locale={locale}
@@ -102,7 +131,7 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
         <LocationSelector
           value={toArea}
           onChange={setToArea}
-          label={tripType === "DROPOFF" ? labels?.toAirport : labels?.toLocation}
+          label={tripType === "DROPOFF" ? labels?.toAirport : (tripType === "POINT_TO_POINT" ? labels?.to : labels?.toLocation)}
           placeholder={tripType === "DROPOFF" ? (labels?.placeholderAirport || labels?.selectAirport) : (labels?.placeholderLocation || labels?.selectLocation)}
           isAirport={tripType === "DROPOFF"}
           locale={locale}
@@ -134,9 +163,9 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
         ) : null}
       </label>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <label className="block">
-          <div className="text-sm font-medium text-slate-700 mb-2">{labels?.passengers ?? "Passengers"}</div>
+          <div className="text-sm font-medium text-slate-700 mb-2 whitespace-nowrap overflow-hidden text-ellipsis">{labels?.passengers ?? "Passengers"}</div>
           <input
             type="number"
             min={1}
@@ -147,7 +176,20 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
           />
         </label>
         <label className="block">
-          <div className="text-sm font-medium text-slate-700 mb-2">{labels?.luggageSmall ?? "Small Luggage"}</div>
+          <div className="text-sm font-medium text-slate-700 mb-2 whitespace-nowrap overflow-hidden text-ellipsis">
+            {labels?.childSeats ?? "Child Seats"}
+          </div>
+          <input
+            type="number"
+            min={0}
+            max={10}
+            className="input-field"
+            value={childSeats}
+            onChange={(e) => setChildSeats(Number(e.target.value))}
+          />
+        </label>
+        <label className="block">
+          <div className="text-sm font-medium text-slate-700 mb-2 whitespace-nowrap overflow-hidden text-ellipsis">{labels?.luggageSmall ?? "Small Luggage"}</div>
           <input
             type="number"
             min={0}
@@ -158,7 +200,7 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
           />
         </label>
         <label className="block">
-          <div className="text-sm font-medium text-slate-700 mb-2">{labels?.luggageMedium ?? "Medium Luggage"}</div>
+          <div className="text-sm font-medium text-slate-700 mb-2 whitespace-nowrap overflow-hidden text-ellipsis">{labels?.luggageMedium ?? "Medium Luggage"}</div>
           <input
             type="number"
             min={0}
@@ -169,7 +211,7 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
           />
         </label>
         <label className="block">
-          <div className="text-sm font-medium text-slate-700 mb-2">{labels?.luggageLarge ?? "Large Luggage"}</div>
+          <div className="text-sm font-medium text-slate-700 mb-2 whitespace-nowrap overflow-hidden text-ellipsis">{labels?.luggageLarge ?? "Large Luggage"}</div>
           <input
             type="number"
             min={0}
