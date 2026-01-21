@@ -18,8 +18,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, t } = await getT();
   const c = await cookies();
-  const isDev = c.get(DEV_COOKIE)?.value === "1";
-  const showAdmin = isDev; // Only show in dev mode or with specific cookie
+  // 严格检查：只有当 DEV_COOKIE 存在且值为 "1" 时才显示管理后台
+  const devCookie = c.get(DEV_COOKIE);
+  const isDev = devCookie?.value === "1";
+  const showAdmin = isDev; // Only show when DEV_COOKIE is set to "1"
   const currency = await getCurrency();
   return (
     <html lang={locale === "en" ? "en" : "zh-CN"}>

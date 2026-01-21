@@ -64,7 +64,47 @@ export default async function AdminPage() {
               "9座车（大空间）": t("vehicle.9seats"),
               "豪华型（VIP）": t("vehicle.luxury"),
               "大巴车（团体）": t("vehicle.bus")
-            }
+            },
+            pricing: t("admin.pricing"),
+            pricingTitle: t("admin.pricingTitle"),
+            pricingSubtitle: t("admin.pricingSubtitle"),
+            addRule: t("admin.addRule"),
+            editRule: t("admin.editRule"),
+            deleteRule: t("admin.deleteRule"),
+            fromArea: t("admin.fromArea"),
+            toArea: t("admin.toArea"),
+            tripType: t("admin.tripType"),
+            basePrice: t("admin.basePrice"),
+            nightFee: t("admin.nightFee"),
+            urgentFee: t("admin.urgentFee"),
+            vehicleType: t("admin.vehicleType"),
+            create: t("admin.create"),
+            creating: t("admin.creating"),
+            update: t("admin.update"),
+            updating: t("admin.updating"),
+            cancel: t("admin.cancel"),
+            delete: t("admin.delete"),
+            deleting: t("admin.deleting"),
+            confirmDelete: t("admin.confirmDelete"),
+            deleteConfirmText: t("admin.deleteConfirmText"),
+            noRules: t("admin.noRules"),
+            fromAreaPlaceholder: t("admin.fromAreaPlaceholder"),
+            toAreaPlaceholder: t("admin.toAreaPlaceholder"),
+            tabsOrders: t("admin.tabs.orders"),
+            tabsPricing: t("admin.tabs.pricing"),
+            tripTypes: {
+              PICKUP: t("search.pickup"),
+              DROPOFF: t("search.dropoff"),
+              POINT_TO_POINT: t("search.p2p")
+            },
+            page: t("admin.page"),
+            pageOf: t("admin.pageOf"),
+            previous: t("admin.previous"),
+            next: t("admin.next"),
+            itemsPerPage: t("admin.itemsPerPage"),
+            startDate: t("admin.startDate"),
+            endDate: t("admin.endDate"),
+            customDateRange: t("admin.customDateRange")
           }}
         />
       </div>

@@ -39,8 +39,10 @@ export function DevUnlockClient({
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error ?? labels.failed);
             setMsg(labels.success);
-            router.refresh();
-            router.push("/admin");
+            // 等待一下确保 cookie 设置完成，然后刷新页面
+            setTimeout(() => {
+              window.location.href = "/admin";
+            }, 300);
           } catch (e: any) {
             setMsg(e?.message ?? labels.failed);
           } finally {

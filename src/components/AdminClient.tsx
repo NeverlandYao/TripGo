@@ -30,6 +30,26 @@ type AdminRow = {
   manualAdjustmentJpy: number;
   pricingNote: string | null;
 };
+type PricingRule = {
+  id: string;
+  fromArea: string;
+  toArea: string;
+  tripType: string;
+  basePriceJpy: number;
+  nightFeeJpy: number;
+  urgentFeeJpy: number;
+  vehicleType: {
+    id: string;
+    name: string;
+  };
+};
+
+type VehicleType = {
+  id: string;
+  name: string;
+  seats: number;
+};
+
 type Labels = {
   loginTitle: string;
   loginSubtitle: string;
@@ -67,6 +87,46 @@ type Labels = {
   filter: string;
   statuses: Record<string, string>;
   vehicles: Record<string, string>;
+  pricing: string;
+  pricingTitle: string;
+  pricingSubtitle: string;
+  addRule: string;
+  editRule: string;
+  deleteRule: string;
+  fromArea: string;
+  toArea: string;
+  tripType: string;
+  basePrice: string;
+  nightFee: string;
+  urgentFee: string;
+  vehicleType: string;
+  create: string;
+  creating: string;
+  update: string;
+  updating: string;
+  cancel: string;
+  delete: string;
+  deleting: string;
+  confirmDelete: string;
+  deleteConfirmText: string;
+  noRules: string;
+  fromAreaPlaceholder: string;
+  toAreaPlaceholder: string;
+  tabsOrders: string;
+  tabsPricing: string;
+  tripTypes: {
+    PICKUP: string;
+    DROPOFF: string;
+    POINT_TO_POINT: string;
+  };
+  page: string;
+  pageOf: string;
+  previous: string;
+  next: string;
+  itemsPerPage: string;
+  startDate: string;
+  endDate: string;
+  customDateRange: string;
 };
 
 export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; locale?: string }) {
@@ -75,45 +135,69 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<AdminRow[]>([]);
   const [currency, setCurrency] = useState<Currency>("JPY");
+  const [activeTab, setActiveTab] = useState<"orders" | "pricing">("orders");
+  
+  // Order pagination
+  const [orderCurrentPage, setOrderCurrentPage] = useState(1);
+  const [orderItemsPerPage, setOrderItemsPerPage] = useState(10);
 
   // Filters
   const [dateType, setDateType] = useState<"createdAt" | "pickupTime">("createdAt");
-  const [filterPreset, setFilterPreset] = useState<"TODAY" | "YESTERDAY" | "THIS_MONTH" | "ALL">("ALL");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [startDate, setStartDate] = useState<string>("");
+  const [startTime, setStartTime] = useState<string>("00:00");
+  const [endDate, setEndDate] = useState<string>("");
+  const [endTime, setEndTime] = useState<string>("23:59");
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingRow = useMemo(() => rows.find((r) => r.id === editingId) ?? null, [rows, editingId]);
+  
+  // Order pagination calculations
+  const orderTotalPages = Math.ceil(rows.length / orderItemsPerPage);
+  const orderStartIndex = (orderCurrentPage - 1) * orderItemsPerPage;
+  const orderEndIndex = orderStartIndex + orderItemsPerPage;
+  const paginatedOrders = rows.slice(orderStartIndex, orderEndIndex);
+  
+  // Reset to page 1 when rows change
+  useEffect(() => {
+    setOrderCurrentPage(1);
+  }, [rows.length]);
   const [status, setStatus] = useState<string>("CONFIRMED");
   const [manualAdjustmentJpy, setManualAdjustmentJpy] = useState<number>(0);
   const [pricingNote, setPricingNote] = useState<string>("");
+
+  // Pricing management
+  const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [showRuleForm, setShowRuleForm] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const editingRule = useMemo(() => pricingRules.find((r) => r.id === editingRuleId) ?? null, [pricingRules, editingRuleId]);
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(pricingRules.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRules = pricingRules.slice(startIndex, endIndex);
+  const [ruleForm, setRuleForm] = useState({
+    fromArea: "",
+    toArea: "",
+    tripType: "PICKUP" as "PICKUP" | "DROPOFF" | "POINT_TO_POINT",
+    vehicleTypeId: "",
+    basePriceJpy: 0,
+    nightFeeJpy: 0,
+    urgentFeeJpy: 0
+  });
 
   useEffect(() => {
     setCurrency(getCurrencyFromCookie());
   }, []);
 
   function getFilterDates() {
-    const now = new Date();
-    const start = new Date();
-    const end = new Date();
-
-    if (filterPreset === "TODAY") {
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      return { startDate: start.toISOString(), endDate: end.toISOString() };
-    }
-    if (filterPreset === "YESTERDAY") {
-      start.setDate(now.getDate() - 1);
-      start.setHours(0, 0, 0, 0);
-      end.setDate(now.getDate() - 1);
-      end.setHours(23, 59, 59, 999);
-      return { startDate: start.toISOString(), endDate: end.toISOString() };
-    }
-    if (filterPreset === "THIS_MONTH") {
-      start.setDate(1);
-      start.setHours(0, 0, 0, 0);
-      end.setMonth(now.getMonth() + 1);
-      end.setDate(0);
-      end.setHours(23, 59, 59, 999);
+    if (startDate && endDate) {
+      const start = new Date(`${startDate}T${startTime}`);
+      const end = new Date(`${endDate}T${endTime}`);
       return { startDate: start.toISOString(), endDate: end.toISOString() };
     }
     return { startDate: null, endDate: null };
@@ -211,6 +295,131 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
     }
   }
 
+  async function loadVehicles() {
+    if (!token) return;
+    try {
+      const res = await fetch("/api/admin/vehicles", {
+        headers: { "x-admin-token": token }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "加载失败");
+      setVehicleTypes(data.vehicles ?? []);
+    } catch (e: any) {
+      setError(e?.message ?? "加载车型失败");
+    }
+  }
+
+  async function loadPricingRules() {
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/pricing", {
+        headers: { "x-admin-token": token }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "加载失败");
+      setPricingRules(data.rules ?? []);
+      setCurrentPage(1); // Reset to first page when loading new data
+    } catch (e: any) {
+      setError(e?.message ?? "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (editingRule) {
+      setShowRuleForm(true);
+      setRuleForm({
+        fromArea: editingRule.fromArea,
+        toArea: editingRule.toArea,
+        tripType: editingRule.tripType as any,
+        vehicleTypeId: editingRule.vehicleType.id,
+        basePriceJpy: editingRule.basePriceJpy,
+        nightFeeJpy: editingRule.nightFeeJpy,
+        urgentFeeJpy: editingRule.urgentFeeJpy
+      });
+    }
+  }, [editingRule]);
+
+  async function savePricingRule() {
+    setLoading(true);
+    setError(null);
+    try {
+      const url = editingRuleId ? "/api/admin/pricing" : "/api/admin/pricing";
+      const method = editingRuleId ? "PUT" : "POST";
+      const body = editingRuleId ? { id: editingRuleId, ...ruleForm } : ruleForm;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "content-type": "application/json", "x-admin-token": token },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "保存失败");
+      setEditingRuleId(null);
+      setShowRuleForm(false);
+      await loadPricingRules();
+    } catch (e: any) {
+      setError(e?.message ?? "保存失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deletePricingRule(id: string) {
+    if (!confirm(labels.deleteConfirmText)) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/pricing?id=${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-token": token }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "删除失败");
+      await loadPricingRules();
+    } catch (e: any) {
+      setError(e?.message ?? "删除失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (token && activeTab === "pricing") {
+      loadVehicles();
+      loadPricingRules();
+    }
+  }, [token, activeTab]);
+
+  // Handle ESC key to close modals
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (showRuleForm) {
+          setEditingRuleId(null);
+          setShowRuleForm(false);
+          setRuleForm({
+            fromArea: "",
+            toArea: "",
+            tripType: "PICKUP",
+            vehicleTypeId: "",
+            basePriceJpy: 0,
+            nightFeeJpy: 0,
+            urgentFeeJpy: 0
+          });
+        }
+        if (editingRow) {
+          setEditingId(null);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [showRuleForm, editingRow]);
+
   return (
     <div className="space-y-4">
       <div className="p-5 rounded-2xl bg-white border border-slate-200">
@@ -224,7 +433,13 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
             placeholder={labels.loginPlaceholder}
           />
           <button
-            onClick={load}
+            onClick={() => {
+              if (activeTab === "orders") {
+                load();
+              } else {
+                loadPricingRules();
+              }
+            }}
             disabled={!token || loading}
             className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
           >
@@ -238,15 +453,44 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
         ) : null}
       </div>
 
+      {/* Tabs */}
+      <div className="p-5 rounded-2xl bg-white border border-slate-200">
+        <div className="flex gap-2 border-b border-slate-200">
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === "orders"
+                ? "text-brand-700 border-b-2 border-brand-700"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {labels.tabsOrders}
+          </button>
+          <button
+            onClick={() => setActiveTab("pricing")}
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === "pricing"
+                ? "text-brand-700 border-b-2 border-brand-700"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {labels.tabsPricing}
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "orders" ? (
+      <>
       <div className="p-5 rounded-2xl bg-white border border-slate-200">
         <div className="font-semibold">{labels.orders}</div>
         
-        {/* Filter Controls */}
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <div className="text-xs text-slate-500 mb-1">{labels.dateType}</div>
+        {/* Filter Controls - Optimized Adaptive Layout */}
+        <div className="mt-4 flex flex-wrap items-end gap-3 w-full">
+          {/* Date Type - Fixed narrow width */}
+          <div className="w-[140px] flex-shrink-0">
+            <div className="text-xs text-slate-500 mb-1.5">{labels.dateType}</div>
             <select
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
               value={dateType}
               onChange={(e) => setDateType(e.target.value as any)}
             >
@@ -254,23 +498,51 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
               <option value="pickupTime">{labels.dateTypePickup}</option>
             </select>
           </div>
-          <div>
-            <div className="text-xs text-slate-500 mb-1">{labels.dateRange}</div>
-            <select
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
-              value={filterPreset}
-              onChange={(e) => setFilterPreset(e.target.value as any)}
-            >
-              <option value="ALL">{labels.all}</option>
-              <option value="TODAY">{labels.today}</option>
-              <option value="YESTERDAY">{labels.yesterday}</option>
-              <option value="THIS_MONTH">{labels.thisMonth}</option>
-            </select>
+          
+          {/* Start Date & Time - Compact Layout */}
+          <div className="flex-1 min-w-[240px]">
+            <div className="text-xs text-slate-500 mb-1.5">{labels.startDate}</div>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                className="flex-[1.5] min-w-[140px] px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+              <input
+                type="time"
+                className="flex-1 min-w-[100px] pl-3 pr-8 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </div>
           </div>
-          <div>
-            <div className="text-xs text-slate-500 mb-1">{labels.status}</div>
+          
+          {/* End Date & Time - Compact Layout */}
+          <div className="flex-1 min-w-[240px]">
+            <div className="text-xs text-slate-500 mb-1.5">{labels.endDate}</div>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                className="flex-[1.5] min-w-[140px] px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate}
+              />
+              <input
+                type="time"
+                className="flex-1 min-w-[100px] pl-3 pr-8 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          {/* Status - Fixed narrow width */}
+          <div className="w-[120px] flex-shrink-0">
+            <div className="text-xs text-slate-500 mb-1.5">{labels.status}</div>
             <select
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
@@ -280,151 +552,574 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
               ))}
             </select>
           </div>
-          <div className="flex items-end gap-2">
+          
+          {/* Filter Button */}
+          <div className="flex-shrink-0">
             <button
               onClick={load}
               disabled={loading || !token}
-              className="flex-1 px-4 py-2 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 disabled:opacity-60 text-sm font-medium"
+              className="px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60 text-sm font-medium transition-colors whitespace-nowrap"
             >
               {labels.filter}
             </button>
+          </div>
+          
+          {/* Export Button */}
+          <div className="flex-shrink-0">
             <button
               onClick={exportOrders}
               disabled={loading || !token}
-              className="flex-1 px-4 py-2 rounded-xl bg-brand-50 text-brand-700 border border-brand-100 hover:bg-brand-100 disabled:opacity-60 text-sm font-medium"
+              className="px-4 py-2 rounded-lg bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 disabled:opacity-60 text-sm font-medium transition-colors whitespace-nowrap"
             >
               {labels.export}
             </button>
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="text-left text-slate-600">
-              <tr className="border-b border-slate-200">
-                <th className="py-2 pr-4">{labels.id}</th>
-                <th className="py-2 pr-4">{labels.pickupTime}</th>
-                <th className="py-2 pr-4">{labels.route}</th>
-                <th className="py-2 pr-4">{labels.vehicle}</th>
-                <th className="py-2 pr-4">{labels.amount}</th>
-                <th className="py-2 pr-4">{labels.status}</th>
-                <th className="py-2 pr-4">{labels.action}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td className="py-4 text-slate-500" colSpan={7}>
-                    {labels.empty}
-                  </td>
-                </tr>
-              ) : (
-                rows.map((r) => {
+        <div className="mt-6">
+          {rows.length === 0 ? (
+            <div className="py-16 text-slate-500 text-center bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+              <div className="text-lg mb-2">{labels.empty}</div>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {paginatedOrders.map((r) => {
                   const displayVehicle = labels.vehicles[r.vehicleName] || r.vehicleName;
                   const displayStatus = labels.statuses[r.status] || r.status;
 
                   return (
-                    <tr key={r.id} className="border-b border-slate-100">
-                      <td className="py-3 pr-4 font-mono text-xs">{r.id}</td>
-                        <td className="py-3 pr-4">{formatDateTimeJST(r.pickupTime, locale)}</td>
-                        <td className="py-3 pr-4">{r.fromTo}</td>
-                        <td className="py-3 pr-4">{displayVehicle}</td>
-                        <td className="py-3 pr-4">
-                          <div className="font-medium">{formatMoneyFromJpy(r.totalJpy, currency, locale)}</div>
-                          {r.manualAdjustmentJpy !== 0 ? (
-                            <div className="text-xs text-slate-500">
-                              {labels.manualAdjustment}: {formatMoneyFromJpy(r.manualAdjustmentJpy, currency, locale)}
+                    <div
+                      key={r.id}
+                      className="group relative bg-white border border-slate-200 rounded-xl hover:border-brand-300 hover:shadow-lg transition-all duration-200 overflow-hidden"
+                    >
+                      {/* Accent bar */}
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-brand-500 to-brand-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      
+                      <div className="p-5">
+                        <div className="flex items-start gap-6">
+                          {/* Left Section - Main Info */}
+                          <div className="flex-1 min-w-0">
+                            {/* Top Row - ID, Time, Status */}
+                            <div className="flex items-start justify-between gap-4 mb-4">
+                              <div className="flex items-center gap-4 flex-wrap">
+                                {/* Order ID */}
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-brand-500"></div>
+                                  <div>
+                                    <div className="text-xs font-medium text-slate-400 mb-0.5">{labels.id}</div>
+                                    <div className="font-mono text-sm font-bold text-slate-900">{r.id}</div>
+                                  </div>
+                                </div>
+                                
+                                <div className="h-6 w-px bg-slate-200"></div>
+                                
+                                {/* Pickup Time */}
+                                <div>
+                                  <div className="text-xs font-medium text-slate-400 mb-0.5">{labels.pickupTime}</div>
+                                  <div className="text-sm font-semibold text-slate-900 whitespace-nowrap">
+                                    {formatDateTimeJST(r.pickupTime, locale)}
+                                  </div>
+                                </div>
+                                
+                                {r.isUrgent && (
+                                  <>
+                                    <div className="h-6 w-px bg-slate-200"></div>
+                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-md animate-pulse">
+                                      ⚡ {labels.urgentTag}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              
+                              {/* Status Badge */}
+                              <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm whitespace-nowrap ${
+                                r.status === 'CONFIRMED' ? 'bg-green-500 text-white' :
+                                r.status === 'PENDING' ? 'bg-amber-500 text-white' :
+                                r.status === 'CANCELLED' ? 'bg-red-500 text-white' :
+                                'bg-blue-500 text-white'
+                              }`}>
+                                {displayStatus}
+                              </span>
                             </div>
-                          ) : null}
-                        </td>
-                      <td className="py-3 pr-4">
-                        <span className="inline-flex items-center gap-2">
-                          {displayStatus}
-                          {r.isUrgent ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                              {labels.urgentTag}
-                            </span>
-                          ) : null}
-                        </span>
-                      </td>
-                    <td className="py-3 pr-4">
-                      <button
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50"
-                        onClick={() => setEditingId(r.id)}
-                      >
-                        {labels.edit}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-          </table>
+                            
+                            {/* Bottom Row - Route and Vehicle */}
+                            <div className="flex items-center gap-6 flex-wrap">
+                              {/* Route */}
+                              <div className="flex-1 min-w-[250px]">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                  <div className="text-xs font-medium text-slate-400">{labels.route}</div>
+                                </div>
+                                <div className="text-base font-semibold text-slate-900 truncate" title={r.fromTo}>
+                                  {r.fromTo}
+                                </div>
+                              </div>
+                              
+                              <div className="h-8 w-px bg-slate-200"></div>
+                              
+                              {/* Vehicle */}
+                              <div className="min-w-[140px]">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                  </svg>
+                                  <div className="text-xs font-medium text-slate-400">{labels.vehicle}</div>
+                                </div>
+                                <div className="text-base font-semibold text-slate-900 whitespace-nowrap">
+                                  {displayVehicle}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Right Section - Amount and Action */}
+                          <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                            {/* Amount */}
+                            <div className="text-right">
+                              <div className="text-xs font-medium text-slate-400 mb-1">{labels.amount}</div>
+                              <div className="text-2xl font-bold text-brand-600">
+                                {formatMoneyFromJpy(r.totalJpy, currency, locale)}
+                              </div>
+                              {r.manualAdjustmentJpy !== 0 && (
+                                <div className={`text-xs font-semibold mt-1.5 px-2 py-0.5 rounded ${
+                                  r.manualAdjustmentJpy > 0 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'
+                                }`}>
+                                  {r.manualAdjustmentJpy > 0 ? '+' : ''}{formatMoneyFromJpy(r.manualAdjustmentJpy, currency, locale)}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Action Button */}
+                            <button
+                              className="px-5 py-2.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-700 transition-colors text-sm font-semibold whitespace-nowrap shadow-md hover:shadow-lg"
+                              onClick={() => setEditingId(r.id)}
+                            >
+                              {labels.edit}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Pagination Controls */}
+              {rows.length > 0 && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200">
+                  <div className="text-sm text-slate-600">
+                    {labels.pageOf
+                      ?.replace("{total}", String(rows.length))
+                      .replace("{current}", String(orderCurrentPage))
+                      .replace("{totalPages}", String(orderTotalPages)) || 
+                      `共 ${rows.length} 条，第 ${orderCurrentPage} / ${orderTotalPages} 页`}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <select
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      value={orderItemsPerPage}
+                      onChange={(e) => {
+                        setOrderItemsPerPage(Number(e.target.value));
+                        setOrderCurrentPage(1);
+                      }}
+                    >
+                      <option value={5}>5 {labels.itemsPerPage || "条/页"}</option>
+                      <option value={10}>10 {labels.itemsPerPage || "条/页"}</option>
+                      <option value={20}>20 {labels.itemsPerPage || "条/页"}</option>
+                      <option value={50}>50 {labels.itemsPerPage || "条/页"}</option>
+                    </select>
+                    <button
+                      className="px-4 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                      onClick={() => setOrderCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={orderCurrentPage === 1}
+                    >
+                      {labels.previous || "上一页"}
+                    </button>
+                    <span className="px-4 py-1.5 text-sm font-medium text-slate-700">
+                      {orderCurrentPage} / {orderTotalPages}
+                    </span>
+                    <button
+                      className="px-4 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                      onClick={() => setOrderCurrentPage(p => Math.min(orderTotalPages, p + 1))}
+                      disabled={orderCurrentPage === orderTotalPages}
+                    >
+                      {labels.next || "下一页"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
+      {/* Edit Order Modal */}
       {editingRow ? (
-        <div className="p-5 rounded-2xl bg-white border border-slate-200">
-          <div className="font-semibold">{labels.editTitle}</div>
-          <div className="text-sm text-slate-600 mt-1">
-            {editingRow.id} · {editingRow.contactName}（{editingRow.contactEmail}）
-          </div>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setEditingId(null);
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="font-semibold text-lg mb-2">{labels.editTitle}</div>
+              <div className="text-sm text-slate-600 mb-6 pb-4 border-b border-slate-200">
+                <div className="font-mono text-xs text-slate-500 mb-1">{editingRow.id}</div>
+                <div>{editingRow.contactName}（{editingRow.contactEmail}）</div>
+              </div>
 
-          <div className="mt-4 grid md:grid-cols-3 gap-3">
-            <label className="text-sm block">
-              <div className="text-slate-700 mb-1">{labels.status}</div>
-              <select
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {Object.entries(labels.statuses).map(([val, label]) => (
-                  <option key={val} value={val}>{label}</option>
-                ))}
-              </select>
-            </label>
+              <div className="grid md:grid-cols-2 gap-4">
+                <label className="text-sm block">
+                  <div className="text-slate-700 mb-2 font-medium">{labels.status}</div>
+                  <select
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                  >
+                    {Object.entries(labels.statuses).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                </label>
 
-            <label className="text-sm block">
-              <div className="text-slate-700 mb-1">{labels.manualAdjustment}</div>
-              <input
-                type="number"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
-                value={manualAdjustmentJpy}
-                onChange={(e) => setManualAdjustmentJpy(Number(e.target.value))}
-              />
-              <div className="text-xs text-slate-500 mt-1">{labels.adjustmentHint}</div>
-            </label>
+                <label className="text-sm block">
+                  <div className="text-slate-700 mb-2 font-medium">{labels.manualAdjustment}</div>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
+                    value={manualAdjustmentJpy}
+                    onChange={(e) => setManualAdjustmentJpy(Number(e.target.value))}
+                    placeholder="0"
+                  />
+                  <div className="text-xs text-slate-500 mt-1.5">{labels.adjustmentHint}</div>
+                </label>
 
-            <label className="text-sm block">
-              <div className="text-slate-700 mb-1">{labels.note}</div>
-              <input
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
-                value={pricingNote}
-                onChange={(e) => setPricingNote(e.target.value)}
-                placeholder={labels.notePlaceholder}
-              />
-            </label>
-          </div>
+                <label className="text-sm block md:col-span-2">
+                  <div className="text-slate-700 mb-2 font-medium">{labels.note}</div>
+                  <textarea
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all resize-none"
+                    rows={3}
+                    value={pricingNote}
+                    onChange={(e) => setPricingNote(e.target.value)}
+                    placeholder={labels.notePlaceholder}
+                  />
+                </label>
+              </div>
 
-          <div className="mt-4 flex gap-2">
-            <button
-              className="px-4 py-2 rounded-xl bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-60"
-              disabled={loading}
-              onClick={save}
-            >
-              {loading ? labels.saving : labels.save}
-            </button>
-            <button
-              className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 disabled:opacity-60"
-              disabled={loading}
-              onClick={() => setEditingId(null)}
-            >
-              {labels.close}
-            </button>
+              <div className="mt-6 flex gap-3 justify-end pt-4 border-t border-slate-200">
+                <button
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 disabled:opacity-60 text-sm font-medium transition-colors"
+                  disabled={loading}
+                  onClick={() => setEditingId(null)}
+                >
+                  {labels.cancel}
+                </button>
+                <button
+                  className="px-5 py-2.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-60 text-sm font-medium transition-colors"
+                  disabled={loading}
+                  onClick={save}
+                >
+                  {loading ? labels.saving : labels.save}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
+      </>
+      ) : (
+        <>
+          <div className="p-5 rounded-2xl bg-white border border-slate-200">
+            <div className="font-semibold">{labels.pricingTitle}</div>
+            <div className="text-sm text-slate-600 mt-1">{labels.pricingSubtitle}</div>
+            
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setEditingRuleId(null);
+                  setShowRuleForm(true);
+                  setRuleForm({
+                    fromArea: "",
+                    toArea: "",
+                    tripType: "PICKUP",
+                    vehicleTypeId: "",
+                    basePriceJpy: 0,
+                    nightFeeJpy: 0,
+                    urgentFeeJpy: 0
+                  });
+                }}
+                disabled={loading || !token}
+                className="px-4 py-2 rounded-xl bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-60 text-sm font-medium"
+              >
+                {labels.addRule}
+              </button>
+            </div>
+
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="text-left text-slate-600">
+                  <tr className="border-b border-slate-200">
+                    <th className="py-2 pr-4">{labels.fromArea}</th>
+                    <th className="py-2 pr-4">{labels.toArea}</th>
+                    <th className="py-2 pr-4">{labels.tripType}</th>
+                    <th className="py-2 pr-4">{labels.vehicleType}</th>
+                    <th className="py-2 pr-4">{labels.basePrice}</th>
+                    <th className="py-2 pr-4">{labels.nightFee}</th>
+                    <th className="py-2 pr-4">{labels.urgentFee}</th>
+                    <th className="py-2 pr-4">{labels.action}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedRules.length === 0 ? (
+                    <tr>
+                      <td className="py-4 text-slate-500" colSpan={8}>
+                        {labels.noRules}
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedRules.map((r) => (
+                      <tr key={r.id} className="border-b border-slate-100">
+                        <td className="py-3 pr-4">{r.fromArea}</td>
+                        <td className="py-3 pr-4">{r.toArea}</td>
+                        <td className="py-3 pr-4">
+                          {labels.tripTypes[r.tripType as keyof typeof labels.tripTypes] || r.tripType}
+                        </td>
+                        <td className="py-3 pr-4">{labels.vehicles[r.vehicleType.name] || r.vehicleType.name}</td>
+                        <td className="py-3 pr-4">{formatMoneyFromJpy(r.basePriceJpy, currency, locale)}</td>
+                        <td className="py-3 pr-4">{formatMoneyFromJpy(r.nightFeeJpy, currency, locale)}</td>
+                        <td className="py-3 pr-4">{formatMoneyFromJpy(r.urgentFeeJpy, currency, locale)}</td>
+                        <td className="py-3 pr-4">
+                          <div className="flex gap-2">
+                            <button
+                              className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm"
+                              onClick={() => {
+                                setEditingRuleId(r.id);
+                                setShowRuleForm(true);
+                              }}
+                            >
+                              {labels.edit}
+                            </button>
+                            <button
+                              className="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 text-sm"
+                              onClick={() => deletePricingRule(r.id)}
+                              disabled={loading}
+                            >
+                              {labels.delete}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {pricingRules.length > 0 && (
+              <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-slate-600">
+                  {labels.pageOf
+                    .replace("{total}", String(pricingRules.length))
+                    .replace("{current}", String(currentPage))
+                    .replace("{totalPages}", String(totalPages))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm"
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <button
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    {labels.previous}
+                  </button>
+                  <span className="px-3 py-1.5 text-sm text-slate-600">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    {labels.next}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Edit Rule Modal */}
+          {showRuleForm ? (
+            <div 
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setEditingRuleId(null);
+                  setShowRuleForm(false);
+                  setRuleForm({
+                    fromArea: "",
+                    toArea: "",
+                    tripType: "PICKUP",
+                    vehicleTypeId: "",
+                    basePriceJpy: 0,
+                    nightFeeJpy: 0,
+                    urgentFeeJpy: 0
+                  });
+                }
+              }}
+            >
+              <div 
+                className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-6">
+                  <div className="font-semibold text-lg mb-4">
+                    {editingRuleId ? labels.editRule : labels.addRule}
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <label className="text-sm block">
+                      <div className="text-slate-700 mb-1">{labels.fromArea}</div>
+                      <input
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                        value={ruleForm.fromArea}
+                        onChange={(e) => setRuleForm({ ...ruleForm, fromArea: e.target.value })}
+                        placeholder={labels.fromAreaPlaceholder}
+                      />
+                    </label>
+
+                    <label className="text-sm block">
+                      <div className="text-slate-700 mb-1">{labels.toArea}</div>
+                      <input
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                        value={ruleForm.toArea}
+                        onChange={(e) => setRuleForm({ ...ruleForm, toArea: e.target.value })}
+                        placeholder={labels.toAreaPlaceholder}
+                      />
+                    </label>
+
+                    <label className="text-sm block">
+                      <div className="text-slate-700 mb-1">{labels.tripType}</div>
+                      <select
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                        value={ruleForm.tripType}
+                        onChange={(e) => setRuleForm({ ...ruleForm, tripType: e.target.value as any })}
+                      >
+                        <option value="PICKUP">{labels.tripTypes.PICKUP}</option>
+                        <option value="DROPOFF">{labels.tripTypes.DROPOFF}</option>
+                        <option value="POINT_TO_POINT">{labels.tripTypes.POINT_TO_POINT}</option>
+                      </select>
+                    </label>
+
+                    <label className="text-sm block">
+                      <div className="text-slate-700 mb-1">{labels.vehicleType}</div>
+                      <select
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                        value={ruleForm.vehicleTypeId}
+                        onChange={(e) => setRuleForm({ ...ruleForm, vehicleTypeId: e.target.value })}
+                      >
+                        <option value="">选择车型</option>
+                        {vehicleTypes.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {labels.vehicles[v.name] || v.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="text-sm block">
+                      <div className="text-slate-700 mb-1">{labels.basePrice}</div>
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                        value={ruleForm.basePriceJpy}
+                        onChange={(e) => setRuleForm({ ...ruleForm, basePriceJpy: Number(e.target.value) })}
+                      />
+                    </label>
+
+                    <label className="text-sm block">
+                      <div className="text-slate-700 mb-1">{labels.nightFee}</div>
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                        value={ruleForm.nightFeeJpy}
+                        onChange={(e) => setRuleForm({ ...ruleForm, nightFeeJpy: Number(e.target.value) })}
+                      />
+                    </label>
+
+                    <label className="text-sm block">
+                      <div className="text-slate-700 mb-1">{labels.urgentFee}</div>
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                        value={ruleForm.urgentFeeJpy}
+                        onChange={(e) => setRuleForm({ ...ruleForm, urgentFeeJpy: Number(e.target.value) })}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-6 flex gap-2 justify-end">
+                    <button
+                      className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 disabled:opacity-60"
+                      disabled={loading}
+                      onClick={() => {
+                        setEditingRuleId(null);
+                        setShowRuleForm(false);
+                        setRuleForm({
+                          fromArea: "",
+                          toArea: "",
+                          tripType: "PICKUP",
+                          vehicleTypeId: "",
+                          basePriceJpy: 0,
+                          nightFeeJpy: 0,
+                          urgentFeeJpy: 0
+                        });
+                      }}
+                    >
+                      {labels.cancel}
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded-xl bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-60"
+                      disabled={loading}
+                      onClick={savePricingRule}
+                    >
+                      {loading
+                        ? editingRuleId
+                          ? labels.updating
+                          : labels.creating
+                        : editingRuleId
+                        ? labels.update
+                        : labels.create}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }
