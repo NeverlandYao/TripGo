@@ -56,4 +56,14 @@ export const AdminUpdateBookingSchema = z.object({
   pricingNote: z.string().max(200).optional()
 });
 
+export const AdminPricingRuleSchema = z.object({
+  fromArea: z.string().min(1),
+  toArea: z.string().min(1),
+  tripType: z.enum(["PICKUP", "DROPOFF", "POINT_TO_POINT"]),
+  vehicleTypeId: z.string().min(1),
+  basePriceJpy: z.coerce.number().int().min(0).max(1000000),
+  nightFeeJpy: z.coerce.number().int().min(0).max(100000).optional(),
+  urgentFeeJpy: z.coerce.number().int().min(0).max(100000).optional()
+});
+
 
