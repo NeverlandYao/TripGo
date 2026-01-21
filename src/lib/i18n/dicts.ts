@@ -25,7 +25,7 @@ export const dicts: Record<Locale, Dict> = {
       "像 Ctrip / Klook 一样快速下单：填写航班、上车点、下车点、人数行李，选择车型即可完成预订。",
     "home.chip.urgent": "急单支持：24小时内可订",
     "home.chip.vehicles": "多样车型：满足不同出行需求",
-    "home.chip.support": "中文客服：无障碍沟通体验",
+    "home.chip.support": "人工客服：无障碍沟通体验",
     "home.tryRoutes": "热门接送路线：",
     "home.route.naritaShinjuku": "成田机场 (NRT) → 新宿",
     "home.route.hanedaShibuya": "羽田机场 (HND) → 涩谷",
