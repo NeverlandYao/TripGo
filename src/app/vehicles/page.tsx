@@ -119,6 +119,7 @@ export default async function VehiclesPage({
               const rule = ruleByVehicle.get(v.id);
               const vKey = vehicleKeyMap[v.name];
               const displayName = vKey ? t(`vehicle.${vKey}`) : v.name;
+              const displayDescription = vKey ? t(`vehicle.desc.${vKey}`) : v.description || "";
               
               return (
                 <div key={v.id} className="card-elevated p-6 flex flex-col group hover:border-brand-300 transition-colors">
@@ -145,7 +146,7 @@ export default async function VehiclesPage({
 
                   <div className="flex-1 space-y-3 mb-6">
                     <div className="text-sm text-slate-600 line-clamp-2">
-                      {v.description}
+                      {displayDescription}
                     </div>
                   </div>
 

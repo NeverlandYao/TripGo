@@ -192,6 +192,29 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
 
   useEffect(() => {
     setCurrency(getCurrencyFromCookie());
+    
+    // Listen for currency changes via custom event
+    const handleCurrencyChange = () => {
+      setCurrency(getCurrencyFromCookie());
+    };
+    
+    window.addEventListener('currencyChanged', handleCurrencyChange);
+    
+    // Also check periodically (fallback)
+    const interval = setInterval(() => {
+      const currentCurrency = getCurrencyFromCookie();
+      setCurrency((prev) => {
+        if (currentCurrency !== prev) {
+          return currentCurrency;
+        }
+        return prev;
+      });
+    }, 500);
+    
+    return () => {
+      window.removeEventListener('currencyChanged', handleCurrencyChange);
+      clearInterval(interval);
+    };
   }, []);
 
   function getFilterDates() {

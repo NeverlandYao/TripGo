@@ -59,13 +59,13 @@ export default async function HomePage() {
                   className="group px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:border-brand-300 hover:text-brand-600 shadow-sm transition-all duration-200"
                   href="/vehicles?tripType=PICKUP&fromArea=NRT&toArea=Shinjuku&pickupTime=2026-02-01T10:00&passengers=2&luggageSmall=1&luggageMedium=0&luggageLarge=0"
                 >
-                  Narita (NRT) → Shinjuku
+                  {t("home.route.naritaShinjuku")}
                 </Link>
                 <Link
                   className="group px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:border-brand-300 hover:text-brand-600 shadow-sm transition-all duration-200"
                   href="/vehicles?tripType=PICKUP&fromArea=HND&toArea=Shibuya&pickupTime=2026-02-01T22:30&passengers=3&luggageSmall=1&luggageMedium=1&luggageLarge=0"
                 >
-                  Haneda (HND) → Shibuya
+                  {t("home.route.hanedaShibuya")}
                 </Link>
               </div>
             </div>

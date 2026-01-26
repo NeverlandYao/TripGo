@@ -39,6 +39,7 @@ type Labels = {
   placeholderAirport: string;
   placeholderLocation: string;
   locationTip: string;
+  placeholderEmail?: string;
 };
 
 function Field({
@@ -185,7 +186,7 @@ export function CheckoutForm({ preset, labels, locale = "zh" }: { preset: Preset
             className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
             value={contactEmail}
             onChange={(e) => setContactEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder={labels.placeholderEmail || "you@example.com"}
             required
           />
         </Field>

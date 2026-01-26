@@ -55,6 +55,7 @@ type Labels = {
   cancelReasonDefault: string;
   statuses: Record<string, string>;
   vehicles: Record<string, string>;
+  emailPlaceholder?: string;
 };
 
 export function OrdersClient({ labels, locale = "zh-CN" }: { labels: Labels; locale?: string }) {
@@ -69,6 +70,29 @@ export function OrdersClient({ labels, locale = "zh-CN" }: { labels: Labels; loc
 
   useEffect(() => {
     setCurrency(getCurrencyFromCookie());
+    
+    // Listen for currency changes via custom event
+    const handleCurrencyChange = () => {
+      setCurrency(getCurrencyFromCookie());
+    };
+    
+    window.addEventListener('currencyChanged', handleCurrencyChange);
+    
+    // Also check periodically (fallback)
+    const interval = setInterval(() => {
+      const currentCurrency = getCurrencyFromCookie();
+      setCurrency((prev) => {
+        if (currentCurrency !== prev) {
+          return currentCurrency;
+        }
+        return prev;
+      });
+    }, 500);
+    
+    return () => {
+      window.removeEventListener('currencyChanged', handleCurrencyChange);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -124,7 +148,7 @@ export function OrdersClient({ labels, locale = "zh-CN" }: { labels: Labels; loc
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder={labels.emailPlaceholder || "you@example.com"}
               />
             </label>
             <button

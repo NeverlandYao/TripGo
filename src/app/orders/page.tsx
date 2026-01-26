@@ -57,7 +57,8 @@ export default async function OrdersPage() {
               "9座车（大空间）": t("vehicle.9seats"),
               "豪华型（VIP）": t("vehicle.luxury"),
               "大巴车（团体）": t("vehicle.bus"),
-            }
+            },
+            emailPlaceholder: t("form.placeholderEmail")
           }}
         />
       </div>

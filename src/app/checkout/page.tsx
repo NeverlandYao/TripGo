@@ -222,7 +222,8 @@ export default async function CheckoutPage({
                   placeholderSpecial: t("form.placeholderSpecial"),
                   placeholderAirport: t("search.placeholderAirport"),
                   placeholderLocation: t("search.placeholderLocation"),
-                  locationTip: t("search.locationTip")
+                  locationTip: t("search.locationTip"),
+                  placeholderEmail: t("form.placeholderEmail")
                 }}
               />
             </div>
