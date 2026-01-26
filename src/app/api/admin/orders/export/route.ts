@@ -1,35 +1,44 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/adminAuth";
 import { formatDateTimeJST } from "@/lib/timeFormat";
 
 export async function GET(req: Request) {
-  const auth = requireAdmin(req);
+  const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const dateType = searchParams.get("dateType") || "createdAt";
+  const dateType = searchParams.get("dateType") || "created_at";
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
   const status = searchParams.get("status");
 
-  const where: any = {};
+  let query = `
+    SELECT b.*, v.name as vehicle_name 
+    FROM bookings b
+    LEFT JOIN vehicle_types v ON b.vehicle_type_id = v.id
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+  let paramIndex = 1;
 
-  if (startDate || endDate) {
-    where[dateType] = {};
-    if (startDate) where[dateType].gte = new Date(startDate);
-    if (endDate) where[dateType].lte = new Date(endDate);
+  if (startDate) {
+    query += ` AND b.${dateType === 'createdAt' ? 'created_at' : 'pickup_time'} >= $${paramIndex++}`;
+    params.push(new Date(startDate));
+  }
+  if (endDate) {
+    query += ` AND b.${dateType === 'createdAt' ? 'created_at' : 'pickup_time'} <= $${paramIndex++}`;
+    params.push(new Date(endDate));
   }
 
   if (status && status !== "ALL") {
-    where.status = status;
+    query += ` AND b.status = $${paramIndex++}`;
+    params.push(status);
   }
 
-  const bookings = await prisma.booking.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    include: { vehicleType: true }
-  });
+  query += ` ORDER BY b.created_at DESC`;
+
+  const { rows: bookings } = await db.query(query, params);
 
   // Create CSV content
   const headers = [
@@ -51,24 +60,24 @@ export async function GET(req: Request) {
 
   const rows = bookings.map((b: any) => [
     b.id,
-    formatDateTimeJST(b.createdAt.toISOString(), "zh-CN"),
-    formatDateTimeJST(b.pickupTime.toISOString(), "zh-CN"),
+    formatDateTimeJST(new Date(b.created_at).toISOString(), "zh-CN"),
+    formatDateTimeJST(new Date(b.pickup_time).toISOString(), "zh-CN"),
     b.status,
-    b.vehicleType.name,
-    `${b.pickupLocation} -> ${b.dropoffLocation}`,
-    b.contactName,
-    b.contactEmail,
-    `'${b.contactPhone}`, // Use ' to prevent Excel from formatting as number
+    b.vehicle_name,
+    `${b.pickup_location} -> ${b.dropoff_location}`,
+    b.contact_name,
+    b.contact_email,
+    `'${b.contact_phone}`, // Use ' to prevent Excel from formatting as number
     b.passengers,
-    b.childSeats,
-    b.pricingTotalJpy,
-    b.pricingManualAdjustmentJpy,
-    b.pricingNote || ""
+    b.child_seats,
+    b.pricing_total_jpy,
+    b.pricing_manual_adjustment_jpy,
+    b.pricing_note || ""
   ]);
 
   const csvContent = [
     headers.join(","),
-    ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    ...rows.map((row) => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
   ].join("\n");
 
   // Return CSV as download

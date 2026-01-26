@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LocationSelector } from "./LocationSelector";
+import { useSession } from "@/hooks/useSession";
 
 type TripType = "PICKUP" | "DROPOFF" | "POINT_TO_POINT";
 type Labels = {
@@ -28,6 +29,10 @@ type Labels = {
   placeholderAirport?: string;
   placeholderLocation?: string;
   locationTip?: string;
+  locationSearching?: string;
+  locationNoResults?: string;
+  locationGoogleConfigError?: string;
+  locationGooglePowered?: string;
 };
 
 function cn(...xs: Array<string | false | null | undefined>) {
@@ -36,6 +41,7 @@ function cn(...xs: Array<string | false | null | undefined>) {
 
 export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?: string }) {
   const router = useRouter();
+  const { user } = useSession();
   const [tripType, setTripType] = useState<TripType>("PICKUP");
   const [fromArea, setFromArea] = useState("");
   const [toArea, setToArea] = useState("");
@@ -45,17 +51,14 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
   useMemo(() => {
     if (!fromArea && !toArea) {
       if (tripType === "PICKUP") {
-        setFromArea("NRT T1 - 成田机场 第一航站楼");
+        setFromArea("NRT T1");
         setToArea("Shinjuku");
       } else if (tripType === "DROPOFF") {
         setFromArea("Shinjuku");
-        setToArea("NRT T1 - 成田机场 第一航站楼");
-      } else {
-        setFromArea("");
-        setToArea("");
+        setToArea("NRT T1");
       }
     }
-  }, [tripType]);
+  }, [tripType, fromArea, toArea]);
 
   // 设置默认时间为明天 10:00
   useMemo(() => {
@@ -97,6 +100,10 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!user) {
+          router.push(`/login`);
+          return;
+        }
         router.push(`/vehicles?${query}`);
       }}
     >
@@ -127,6 +134,12 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
           isAirport={tripType === "PICKUP"}
           locale={locale}
           tip={labels?.locationTip}
+          labels={{
+            searching: labels?.locationSearching || "",
+            noResults: labels?.locationNoResults || "",
+            googleConfigError: labels?.locationGoogleConfigError || "",
+            googlePowered: labels?.locationGooglePowered || ""
+          }}
         />
         <LocationSelector
           value={toArea}
@@ -136,6 +149,12 @@ export function SearchForm({ labels, locale = "zh" }: { labels?: Labels; locale?
           isAirport={tripType === "DROPOFF"}
           locale={locale}
           tip={labels?.locationTip}
+          labels={{
+            searching: labels?.locationSearching || "",
+            noResults: labels?.locationNoResults || "",
+            googleConfigError: labels?.locationGoogleConfigError || "",
+            googlePowered: labels?.locationGooglePowered || ""
+          }}
         />
       </div>
 

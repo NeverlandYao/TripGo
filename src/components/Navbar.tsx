@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { CurrencySwitch } from "@/components/CurrencySwitch";
+import { useSession } from "@/hooks/useSession";
+import { AuthLink } from "@/components/AuthLink";
 
 export function Navbar({
   locale,
@@ -26,11 +28,27 @@ export function Navbar({
     usd: string;
     brandName: string;
     brandTagline: string;
+    login: string;
+    logout: string;
   };
   showAdmin: boolean;
   currency: "JPY" | "CNY" | "USD";
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading } = useSession();
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
   // 只在 /admin 页面显示管理后台链接
   const shouldShowAdmin = showAdmin && pathname?.startsWith("/admin");
   return (
@@ -55,24 +73,24 @@ export function Navbar({
 
           <nav className="flex items-center gap-2 sm:gap-4 text-sm">
             <div className="flex items-center gap-1 mr-2 border-r border-slate-200 pr-2">
-              <Link 
+              <AuthLink 
                 href="/" 
                 className="px-3 py-2 rounded-lg text-brand-600 hover:bg-brand-50 font-bold transition-colors duration-200"
               >
                 {labels.book}
-              </Link>
-              <Link 
+              </AuthLink>
+              <AuthLink 
                 href="/orders" 
                 className="hidden sm:block px-3 py-2 rounded-lg text-slate-700 hover:text-brand-600 hover:bg-slate-50 font-medium transition-colors duration-200"
               >
                 {labels.orders}
-              </Link>
-              <Link 
+              </AuthLink>
+              <AuthLink 
                 href="/contact" 
                 className="hidden md:block px-3 py-2 rounded-lg text-slate-700 hover:text-brand-600 hover:bg-slate-50 font-medium transition-colors duration-200"
               >
                 {labels.contact}
-              </Link>
+              </AuthLink>
             </div>
 
             <LanguageSwitch
@@ -90,6 +108,30 @@ export function Navbar({
                 { code: "USD", text: labels.usd }
               ]}
             />
+
+            {!loading && (
+              user ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-slate-400 font-normal mr-1 max-w-[120px] truncate">
+                    {user.email}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-2 rounded-lg text-slate-700 hover:text-brand-600 hover:bg-slate-50 font-medium transition-colors duration-200"
+                  >
+                    {labels.logout}
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href={`/login`}
+                  className="px-3 py-2 rounded-lg text-slate-700 hover:text-brand-600 hover:bg-slate-50 font-medium transition-colors duration-200"
+                >
+                  {labels.login}
+                </Link>
+              )
+            )}
+
             {shouldShowAdmin ? (
               <Link
                 href="/admin"

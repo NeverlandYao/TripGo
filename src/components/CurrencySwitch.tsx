@@ -30,15 +30,13 @@ export function CurrencySwitch({
         className="px-2 py-1 rounded-lg border border-slate-200 bg-white"
         value={currency}
         disabled={pending}
-          onChange={(e) =>
-            start(async () => {
-              const next = e.target.value as "JPY" | "CNY" | "USD";
-              await setCurrency(next);
-              // Dispatch custom event for client components to update
-              window.dispatchEvent(new CustomEvent('currencyChanged'));
-              router.refresh();
-            })
-          }
+        onChange={(e) =>
+          start(async () => {
+            const next = e.target.value as "JPY" | "CNY" | "USD";
+            await setCurrency(next);
+            router.refresh();
+          })
+        }
       >
         {items.map((it) => (
           <option key={it.code} value={it.code}>

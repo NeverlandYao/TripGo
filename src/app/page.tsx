@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SearchForm } from "@/components/SearchForm";
+import { AuthLink } from "@/components/AuthLink";
 import { getT } from "@/lib/i18n";
 
 export default async function HomePage() {
@@ -55,18 +56,18 @@ export default async function HomePage() {
                 {t("home.tryRoutes")}
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link
+                <AuthLink
                   className="group px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:border-brand-300 hover:text-brand-600 shadow-sm transition-all duration-200"
                   href="/vehicles?tripType=PICKUP&fromArea=NRT&toArea=Shinjuku&pickupTime=2026-02-01T10:00&passengers=2&luggageSmall=1&luggageMedium=0&luggageLarge=0"
                 >
                   {t("home.route.naritaShinjuku")}
-                </Link>
-                <Link
+                </AuthLink>
+                <AuthLink
                   className="group px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:border-brand-300 hover:text-brand-600 shadow-sm transition-all duration-200"
                   href="/vehicles?tripType=PICKUP&fromArea=HND&toArea=Shibuya&pickupTime=2026-02-01T22:30&passengers=3&luggageSmall=1&luggageMedium=1&luggageLarge=0"
                 >
                   {t("home.route.hanedaShibuya")}
-                </Link>
+                </AuthLink>
               </div>
             </div>
           </div>
@@ -111,7 +112,11 @@ export default async function HomePage() {
                     selectLocation: t("search.selectLocation"),
                     placeholderAirport: t("search.placeholderAirport"),
                     placeholderLocation: t("search.placeholderLocation"),
-                    locationTip: t("search.locationTip")
+                    locationTip: t("search.locationTip"),
+                    locationSearching: t("location.searching"),
+                    locationNoResults: t("location.noResults"),
+                    locationGoogleConfigError: t("location.googleConfigError"),
+                    locationGooglePowered: t("location.googlePowered"),
                   }}
                 />
               </div>

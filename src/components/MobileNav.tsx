@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AuthLink } from "@/components/AuthLink";
 
 export function MobileNav({
   labels
@@ -50,7 +51,7 @@ export function MobileNav({
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
-            <Link
+            <AuthLink
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
@@ -59,7 +60,7 @@ export function MobileNav({
             >
               {item.icon}
               <span className="text-[10px] font-medium uppercase tracking-wider">{item.label}</span>
-            </Link>
+            </AuthLink>
           );
         })}
       </div>

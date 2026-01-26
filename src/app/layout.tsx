@@ -42,7 +42,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               cny: t("currency.cny"),
               usd: t("currency.usd"),
               brandName: t("brand.name"),
-              brandTagline: t("brand.tagline")
+              brandTagline: t("brand.tagline"),
+              login: t("nav.login"),
+              logout: t("nav.logout")
             }}
             showAdmin={showAdmin}
             currency={currency}

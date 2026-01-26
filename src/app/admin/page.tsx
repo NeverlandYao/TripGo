@@ -1,5 +1,6 @@
 import { AdminClient } from "@/components/AdminClient";
 import { getT, getLocale } from "@/lib/i18n";
+import { VEHICLE_NAMES } from "@/lib/locationData";
 
 export default async function AdminPage() {
   const { t } = await getT();
@@ -59,11 +60,11 @@ export default async function AdminPage() {
               CANCELLED: t("status.CANCELLED")
             },
             vehicles: {
-              "5座车（经济型）": t("vehicle.5seats"),
-              "7座车（商务型）": t("vehicle.7seats"),
-              "9座车（大空间）": t("vehicle.9seats"),
-              "豪华型（VIP）": t("vehicle.luxury"),
-              "大巴车（团体）": t("vehicle.bus")
+              [VEHICLE_NAMES.ECONOMY_5]: t("vehicle.5seats"),
+              [VEHICLE_NAMES.BUSINESS_7]: t("vehicle.7seats"),
+              [VEHICLE_NAMES.LARGE_9]: t("vehicle.9seats"),
+              [VEHICLE_NAMES.LUXURY]: t("vehicle.luxury"),
+              [VEHICLE_NAMES.BUS]: t("vehicle.bus")
             },
             pricing: t("admin.pricing"),
             pricingTitle: t("admin.pricingTitle"),
@@ -102,9 +103,19 @@ export default async function AdminPage() {
             previous: t("admin.previous"),
             next: t("admin.next"),
             itemsPerPage: t("admin.itemsPerPage"),
+            itemsPerPageSuffix: t("admin.itemsPerPageSuffix"),
             startDate: t("admin.startDate"),
             endDate: t("admin.endDate"),
-            customDateRange: t("admin.customDateRange")
+            customDateRange: t("admin.customDateRange"),
+            loadFailed: t("admin.loadFailed"),
+            saveFailed: t("admin.saveFailed"),
+            deleteFailed: t("admin.deleteFailed"),
+            exportFailed: t("admin.exportFailed"),
+            loadVehiclesFailed: t("admin.loadVehiclesFailed"),
+            verified: t("admin.verified"),
+            pricingRuleNotFound: t("admin.pricingRuleNotFound"),
+            vehicleTypeNotFound: t("admin.vehicleTypeNotFound"),
+            selectVehicle: t("admin.selectVehicle")
           }}
         />
       </div>

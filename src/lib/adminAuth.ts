@@ -1,8 +1,16 @@
-export function requireAdmin(req: Request) {
-  const token = process.env.ADMIN_TOKEN;
-  if (!token) return { ok: false as const, error: "api.adminTokenNotConfigured" };
-  const got = req.headers.get("x-admin-token") || "";
-  if (got !== token) return { ok: false as const, error: "api.unauthorized" };
+import { getSession, isAdminVerified } from "./auth";
+
+export async function requireAdmin() {
+  const session = await getSession();
+  if (!session || session.role !== "ADMIN") {
+    return { ok: false as const, error: "api.unauthorized" };
+  }
+
+  const verified = await isAdminVerified();
+  if (!verified) {
+    return { ok: false as const, error: "api.adminSecretRequired" };
+  }
+
   return { ok: true as const, error: null };
 }
 

@@ -5,7 +5,7 @@ export function formatDateTimeJST(date: Date | string, locale: string = "zh-CN")
   const isZh = locale.startsWith("zh");
   const options: Intl.DateTimeFormatOptions = {
     year: "numeric",
-    month: "numeric",
+    month: isZh ? "numeric" : "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -22,9 +22,10 @@ export function formatDateTimeJST(date: Date | string, locale: string = "zh-CN")
 
 export function formatDateJST(date: Date | string, locale: string = "zh-CN"): string {
   const d = typeof date === "string" ? new Date(date) : date;
+  const isZh = locale.startsWith("zh");
   const options: Intl.DateTimeFormatOptions = {
     year: "numeric",
-    month: "numeric",
+    month: isZh ? "numeric" : "short",
     day: "numeric",
     timeZone: "Asia/Tokyo"
   };

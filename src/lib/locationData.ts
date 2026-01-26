@@ -111,6 +111,14 @@ export const POPULAR_HOTELS: PopularHotel[] = [
   }
 ];
 
+export const VEHICLE_NAMES = {
+  ECONOMY_5: "5座车（经济型）",
+  BUSINESS_7: "7座车（商务型）",
+  LARGE_9: "9座车（大空间）",
+  LUXURY: "豪华型（VIP）",
+  BUS: "大巴车（团体）"
+};
+
 export function findAirportByCode(code: string): AirportTerminal | undefined {
   return AIRPORTS.find((a) => a.code === code.toUpperCase());
 }
@@ -167,6 +175,39 @@ export function getPricingAreaCode(location: string): string {
     (h) => h.code === location || h.name.zh === location || h.name.en === location
   );
   if (hotel) return hotel.area; // 返回酒店所在的区域代码
+
+  return location;
+}
+
+/**
+ * 将存储在 URL 或数据库中的原始位置名称本地化
+ */
+export function getLocalizedLocation(location: string, locale: string = "zh"): string {
+  if (!location) return "";
+  const isZh = locale.startsWith("zh");
+
+  // 1. 尝试匹配机场
+  // 格式 A: "NRT T1 - 成田机场 第一航站楼"
+  // 格式 B: "NRT T1" (常见于默认值)
+  const airportMatch = location.match(/^([A-Z]{3})\s+([A-Z0-9]+)(\s+-\s+(.+))?$/);
+  if (airportMatch) {
+    const [_, code, terminalCode, fullSuffix, originalName] = airportMatch;
+    const airport = AIRPORTS.find(a => a.code === code);
+    if (airport) {
+      const terminal = airport.terminals.find(t => t.code === terminalCode);
+      const airportName = isZh ? airport.name.zh : airport.name.en;
+      const terminalName = terminal ? (isZh ? terminal.name.zh : terminal.name.en) : terminalCode;
+      return `${code} ${terminalCode} - ${airportName} ${terminalName}`;
+    }
+  }
+
+  // 2. 尝试匹配区域
+  const area = POPULAR_AREAS.find(a => a.code === location || a.name.zh === location || a.name.en === location);
+  if (area) return isZh ? area.name.zh : area.name.en;
+
+  // 3. 尝试匹配酒店
+  const hotel = POPULAR_HOTELS.find(h => h.code === location || h.name.zh === location || h.name.en === location);
+  if (hotel) return isZh ? hotel.name.zh : hotel.name.en;
 
   return location;
 }

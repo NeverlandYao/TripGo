@@ -127,6 +127,16 @@ type Labels = {
   startDate: string;
   endDate: string;
   customDateRange: string;
+  pricingRuleNotFound: string;
+  vehicleTypeNotFound: string;
+  loadFailed: string;
+  saveFailed: string;
+  deleteFailed: string;
+  exportFailed: string;
+  loadVehiclesFailed: string;
+  verified: string;
+  itemsPerPageSuffix: string;
+  selectVehicle: string;
 };
 
 export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; locale?: string }) {
@@ -136,6 +146,7 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
   const [rows, setRows] = useState<AdminRow[]>([]);
   const [currency, setCurrency] = useState<Currency>("JPY");
   const [activeTab, setActiveTab] = useState<"orders" | "pricing">("orders");
+  const isZh = locale.startsWith("zh");
   
   // Order pagination
   const [orderCurrentPage, setOrderCurrentPage] = useState(1);
@@ -217,6 +228,24 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
     };
   }, []);
 
+  // Admin secret verification
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const res = await fetch("/api/admin/verify-secret");
+        if (res.ok) {
+          // If already verified (cookie exists), just set a dummy token to enable UI
+          setToken("verified");
+          // Auto load orders
+          load();
+        }
+      } catch (err) {
+        // Not verified
+      }
+    };
+    checkAdmin();
+  }, []);
+
   function getFilterDates() {
     if (startDate && endDate) {
       const start = new Date(`${startDate}T${startTime}`);
@@ -237,14 +266,12 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
       if (endDate) params.append("endDate", endDate);
       if (filterStatus !== "ALL") params.append("status", filterStatus);
 
-      const res = await fetch(`/api/admin/orders?${params.toString()}`, {
-        headers: { "x-admin-token": token }
-      });
+      const res = await fetch(`/api/admin/orders?${params.toString()}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "加载失败");
+      if (!res.ok) throw new Error(data?.error ?? labels.loadFailed);
       setRows(data.rows ?? []);
     } catch (e: any) {
-      setError(e?.message ?? "加载失败");
+      setError(e?.message ?? labels.loadFailed);
     } finally {
       setLoading(false);
     }
@@ -261,12 +288,10 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
       if (endDate) params.append("endDate", endDate);
       if (filterStatus !== "ALL") params.append("status", filterStatus);
 
-      const res = await fetch(`/api/admin/orders/export?${params.toString()}`, {
-        headers: { "x-admin-token": token }
-      });
+      const res = await fetch(`/api/admin/orders/export?${params.toString()}`);
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data?.error ?? "导出失败");
+        throw new Error(data?.error ?? labels.exportFailed);
       }
       
       const blob = await res.blob();
@@ -279,7 +304,7 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (e: any) {
-      setError(e?.message ?? "导出失败");
+      setError(e?.message ?? labels.exportFailed);
     } finally {
       setLoading(false);
     }
@@ -299,7 +324,7 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
     try {
       const res = await fetch("/api/admin/bookings", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-admin-token": token },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({
           bookingId: editingId,
           status,
@@ -308,44 +333,38 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "保存失败");
+      if (!res.ok) throw new Error(data?.error ?? labels.saveFailed);
       setEditingId(null);
       await load();
     } catch (e: any) {
-      setError(e?.message ?? "保存失败");
+      setError(e?.message ?? labels.saveFailed);
     } finally {
       setLoading(false);
     }
   }
 
   async function loadVehicles() {
-    if (!token) return;
     try {
-      const res = await fetch("/api/admin/vehicles", {
-        headers: { "x-admin-token": token }
-      });
+      const res = await fetch("/api/admin/vehicles");
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "加载失败");
+      if (!res.ok) throw new Error(data?.error ?? labels.loadFailed);
       setVehicleTypes(data.vehicles ?? []);
     } catch (e: any) {
-      setError(e?.message ?? "加载车型失败");
+      setError(e?.message ?? labels.loadVehiclesFailed);
     }
   }
 
   async function loadPricingRules() {
-    if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/pricing", {
-        headers: { "x-admin-token": token }
-      });
+      const res = await fetch("/api/admin/pricing");
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "加载失败");
+      if (!res.ok) throw new Error(data?.error ?? labels.loadFailed);
       setPricingRules(data.rules ?? []);
       setCurrentPage(1); // Reset to first page when loading new data
     } catch (e: any) {
-      setError(e?.message ?? "加载失败");
+      setError(e?.message ?? labels.loadFailed);
     } finally {
       setLoading(false);
     }
@@ -376,16 +395,16 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
 
       const res = await fetch(url, {
         method,
-        headers: { "content-type": "application/json", "x-admin-token": token },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify(body)
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "保存失败");
+      if (!res.ok) throw new Error(data?.error ?? labels.saveFailed);
       setEditingRuleId(null);
       setShowRuleForm(false);
       await loadPricingRules();
     } catch (e: any) {
-      setError(e?.message ?? "保存失败");
+      setError(e?.message ?? labels.saveFailed);
     } finally {
       setLoading(false);
     }
@@ -397,14 +416,13 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
     setError(null);
     try {
       const res = await fetch(`/api/admin/pricing?id=${id}`, {
-        method: "DELETE",
-        headers: { "x-admin-token": token }
+        method: "DELETE"
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "删除失败");
+      if (!res.ok) throw new Error(data?.error ?? labels.deleteFailed);
       await loadPricingRules();
     } catch (e: any) {
-      setError(e?.message ?? "删除失败");
+      setError(e?.message ?? labels.deleteFailed);
     } finally {
       setLoading(false);
     }
@@ -443,38 +461,77 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
     return () => window.removeEventListener("keydown", handleEsc);
   }, [showRuleForm, editingRow]);
 
-  return (
-    <div className="space-y-4">
-      <div className="p-5 rounded-2xl bg-white border border-slate-200">
-        <div className="font-semibold">{labels.loginTitle}</div>
-        <div className="text-sm text-slate-600 mt-1">{labels.loginSubtitle}</div>
-        <div className="mt-4 flex flex-col md:flex-row gap-2">
-          <input
-            className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            placeholder={labels.loginPlaceholder}
-          />
+  async function handleLogin() {
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/verify-secret", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: token })
+      });
+      if (res.ok) {
+        if (activeTab === "orders") {
+          load();
+        } else {
+          loadPricingRules();
+        }
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || "Invalid secret");
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (token !== "verified") {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 p-8 shadow-xl shadow-slate-100 mb-8 text-center">
+          <div className="w-20 h-20 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">{labels.loginTitle}</h2>
+          <p className="text-slate-500 mb-8">{labels.loginSubtitle}</p>
+          
+          <div className="relative mb-6">
+            <input
+                type="password"
+                value={token === "verified" ? "" : token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder={token === "verified" ? labels.verified : labels.loginPlaceholder}
+                className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200 focus:border-brand-500 outline-none transition-all text-lg font-mono tracking-widest text-center"
+              />
+          </div>
           <button
-            onClick={() => {
-              if (activeTab === "orders") {
-                load();
-              } else {
-                loadPricingRules();
-              }
-            }}
-            disabled={!token || loading}
-            className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
+            onClick={handleLogin}
+            disabled={loading || token === "verified"}
+            className="w-full py-4 rounded-2xl bg-brand-600 text-white font-bold text-lg hover:bg-brand-700 active:scale-[0.98] transition-all disabled:opacity-50 shadow-xl shadow-brand-200"
           >
             {loading ? labels.loading : labels.enter}
           </button>
         </div>
-        {error ? (
-          <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
+
+        {error && (
+          <div className="max-w-md w-full p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 text-sm font-medium flex items-center gap-3">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             {error}
           </div>
-        ) : null}
+        )}
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
 
       {/* Tabs */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200">
@@ -738,8 +795,7 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
                     {labels.pageOf
                       ?.replace("{total}", String(rows.length))
                       .replace("{current}", String(orderCurrentPage))
-                      .replace("{totalPages}", String(orderTotalPages)) || 
-                      `共 ${rows.length} 条，第 ${orderCurrentPage} / ${orderTotalPages} 页`}
+                      .replace("{totalPages}", String(orderTotalPages))}
                   </div>
                   <div className="flex items-center gap-3">
                     <select
@@ -750,17 +806,17 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
                         setOrderCurrentPage(1);
                       }}
                     >
-                      <option value={5}>5 {labels.itemsPerPage || "条/页"}</option>
-                      <option value={10}>10 {labels.itemsPerPage || "条/页"}</option>
-                      <option value={20}>20 {labels.itemsPerPage || "条/页"}</option>
-                      <option value={50}>50 {labels.itemsPerPage || "条/页"}</option>
+                      <option value={5}>5 {labels.itemsPerPageSuffix}</option>
+                      <option value={10}>10 {labels.itemsPerPageSuffix}</option>
+                      <option value={20}>20 {labels.itemsPerPageSuffix}</option>
+                      <option value={50}>50 {labels.itemsPerPageSuffix}</option>
                     </select>
                     <button
                       className="px-4 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                       onClick={() => setOrderCurrentPage(p => Math.max(1, p - 1))}
                       disabled={orderCurrentPage === 1}
                     >
-                      {labels.previous || "上一页"}
+                      {labels.previous}
                     </button>
                     <span className="px-4 py-1.5 text-sm font-medium text-slate-700">
                       {orderCurrentPage} / {orderTotalPages}
@@ -770,7 +826,7 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
                       onClick={() => setOrderCurrentPage(p => Math.min(orderTotalPages, p + 1))}
                       disabled={orderCurrentPage === orderTotalPages}
                     >
-                      {labels.next || "下一页"}
+                      {labels.next}
                     </button>
                   </div>
                 </div>
@@ -1063,7 +1119,7 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
                         value={ruleForm.vehicleTypeId}
                         onChange={(e) => setRuleForm({ ...ruleForm, vehicleTypeId: e.target.value })}
                       >
-                        <option value="">选择车型</option>
+                        <option value="">{labels.selectVehicle}</option>
                         {vehicleTypes.map((v) => (
                           <option key={v.id} value={v.id}>
                             {labels.vehicles[v.name] || v.name}

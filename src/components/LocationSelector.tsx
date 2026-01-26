@@ -5,6 +5,7 @@ import {
   AIRPORTS,
   POPULAR_AREAS,
   POPULAR_HOTELS,
+  getLocalizedLocation,
   type AirportTerminal,
   type PopularArea,
   type PopularHotel
@@ -19,6 +20,12 @@ type LocationSelectorProps = {
   locale?: string;
   className?: string;
   tip?: string;
+  labels?: {
+    searching: string;
+    noResults: string;
+    googleConfigError: string;
+    googlePowered: string;
+  };
 };
 
 // 真实 Google Places Autocomplete 搜索逻辑
@@ -71,7 +78,8 @@ export function LocationSelector({
   isAirport = false,
   locale = "zh",
   className = "",
-  tip
+  tip,
+  labels
 }: LocationSelectorProps) {
   // 加载 Google Maps 脚本
   useEffect(() => {
@@ -210,6 +218,8 @@ export function LocationSelector({
   const filteredSuggestions = suggestions.slice(0, 8);
   const allResults = [...filteredSuggestions, ...googleResults];
 
+  const displayValue = isOpen ? searchQuery : getLocalizedLocation(value, locale);
+
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {label ? (
@@ -232,7 +242,7 @@ export function LocationSelector({
         <input
           type="text"
           className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all cursor-pointer"
-          value={isOpen ? searchQuery : value}
+          value={displayValue}
           readOnly={isAirport && !isOpen} // 机场模式未打开时只读，点击触发下拉
           onChange={(e) => {
             setSearchQuery(e.target.value);
@@ -259,7 +269,7 @@ export function LocationSelector({
             {isLoading && (
               <div className="px-4 py-3 text-sm text-slate-500 flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-                {isZh ? "正在搜索..." : "Searching..."}
+                {labels?.searching}
               </div>
             )}
             
@@ -309,7 +319,7 @@ export function LocationSelector({
                   <svg className="w-8 h-8 mx-auto mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                  {isZh ? "未找到相关地点" : "No results found"}
+                  {labels?.noResults}
                 </div>
               </div>
             )}
@@ -324,14 +334,14 @@ export function LocationSelector({
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              {isZh ? "Google Maps API 配置无效，仅显示热门地点" : "Invalid Google Maps API Key, showing popular areas only"}
+              {labels?.googleConfigError}
             </span>
           ) : (
             <span className="text-slate-400 flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              {tip || (isZh ? "可输入具体地址，由 Google Maps 提供支持" : "Powered by Google Maps")}
+              {tip || labels?.googlePowered}
             </span>
           )}
         </div>

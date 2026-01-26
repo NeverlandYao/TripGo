@@ -1,6 +1,7 @@
 import { OrdersClient } from "@/components/OrdersClient";
 import { getT, getLocale } from "@/lib/i18n";
 import { TravelShowcase } from "@/components/TravelShowcase";
+import { VEHICLE_NAMES } from "@/lib/locationData";
 
 export default async function OrdersPage() {
   const { t } = await getT();
@@ -52,14 +53,19 @@ export default async function OrdersPage() {
               CANCELLED: t("status.CANCELLED"),
             },
             vehicles: {
-              "5座车（经济型）": t("vehicle.5seats"),
-              "7座车（商务型）": t("vehicle.7seats"),
-              "9座车（大空间）": t("vehicle.9seats"),
-              "豪华型（VIP）": t("vehicle.luxury"),
-              "大巴车（团体）": t("vehicle.bus"),
+              [VEHICLE_NAMES.ECONOMY_5]: t("vehicle.5seats"),
+              [VEHICLE_NAMES.BUSINESS_7]: t("vehicle.7seats"),
+              [VEHICLE_NAMES.LARGE_9]: t("vehicle.9seats"),
+              [VEHICLE_NAMES.LUXURY]: t("vehicle.luxury"),
+              [VEHICLE_NAMES.BUS]: t("vehicle.bus"),
             },
-            emailPlaceholder: t("form.placeholderEmail")
-          }}
+            account: t("orders.account"),
+            refresh: t("orders.refresh"),
+            loginRequired: t("orders.loginRequired"),
+            loginDesc: t("orders.loginDesc"),
+            loginButton: t("orders.loginButton"),
+            cancelReasonPlaceholder: t("orders.cancelReasonPlaceholder"),
+          }} 
         />
       </div>
     </div>

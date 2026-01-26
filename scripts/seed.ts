@@ -1,12 +1,26 @@
-import { prisma } from "../src/lib/prisma";
+import { Pool } from 'pg';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
+function generateId() {
+  return Math.random().toString(36).substring(2, 15);
+}
 
 async function main() {
-  // Vehicle types
-  const vehicles = await prisma.vehicleType.findMany();
-  if (vehicles.length === 0) {
-    await prisma.vehicleType.createMany({
-      data: [
+  const client = await pool.connect();
+  try {
+    // Vehicle types
+    const { rows: existingVehicles } = await client.query('SELECT * FROM vehicle_types');
+    
+    if (existingVehicles.length === 0) {
+      const vehicles = [
         {
+          id: generateId(),
           name: "5座车（经济型）",
           seats: 4,
           luggageSmall: 2,
@@ -15,6 +29,7 @@ async function main() {
           description: "适合 1-3 人轻装出行"
         },
         {
+          id: generateId(),
           name: "7座车（商务型）",
           seats: 6,
           luggageSmall: 4,
@@ -23,6 +38,7 @@ async function main() {
           description: "适合家庭/多人出行"
         },
         {
+          id: generateId(),
           name: "9座车（大空间）",
           seats: 8,
           luggageSmall: 6,
@@ -31,40 +47,46 @@ async function main() {
           description: "适合行李较多或 6-8 人"
         },
         {
+          id: generateId(),
           name: "豪华型（VIP）",
           seats: 4,
           luggageSmall: 3,
           luggageMedium: 2,
           luggageLarge: 2,
-          isLuxury: true,
+          is_luxury: true,
           description: "更舒适的商务接待"
         },
         {
+          id: generateId(),
           name: "大巴车（团体）",
           seats: 20,
           luggageSmall: 20,
           luggageMedium: 20,
           luggageLarge: 20,
-          isBus: true,
+          is_bus: true,
           description: "团队出行与大型行李"
         }
-      ]
-    });
-  }
+      ];
 
-  const allVehicles = await prisma.vehicleType.findMany();
-  const byName = new Map(allVehicles.map((v) => [v.name, v.id]));
+      for (const v of vehicles) {
+        await client.query(
+          'INSERT INTO vehicle_types (id, name, seats, luggage_small, luggage_medium, luggage_large, is_luxury, is_bus, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+          [v.id, v.name, v.seats, v.luggageSmall, v.luggageMedium, v.luggageLarge, v.is_luxury || false, v.is_bus || false, v.description]
+        );
+      }
+    }
 
-  // Pricing rules (demo)
-  // 清除旧的报价规则，重新生成
-  await prisma.pricingRule.deleteMany();
-  
-  const airports = ["NRT", "HND", "KIX", "NGO", "CTS"];
+    const { rows: allVehicles } = await client.query('SELECT * FROM vehicle_types');
+    const byName = new Map(allVehicles.map((v) => [v.name, v.id]));
+
+    // Pricing rules (demo)
+    await client.query('DELETE FROM pricing_rules');
+    
+    const airports = ["NRT", "HND", "KIX", "NGO", "CTS"];
     const popularAreas = ["Shinjuku", "Shibuya", "Ginza", "Asakusa", "Ueno", "Ikebukuro", "Namba", "Umeda", "Dotonbori", "Gion", "Kyoto Station"];
     
     const routes: Array<{ fromArea: string; toArea: string; tripType: "PICKUP" | "DROPOFF" }> = [];
     
-    // 生成所有机场到热门区域的接机路由
     for (const airport of airports) {
       for (const area of popularAreas) {
         routes.push({ fromArea: airport, toArea: area, tripType: "PICKUP" });
@@ -84,30 +106,20 @@ async function main() {
       for (const vp of vehiclePrice) {
         const vehicleTypeId = byName.get(vp.name);
         if (!vehicleTypeId) continue;
-        await prisma.pricingRule.create({
-          data: {
-            fromArea: r.fromArea,
-            toArea: r.toArea,
-            tripType: r.tripType,
-            basePriceJpy: vp.base,
-            nightFeeJpy: vp.night,
-            urgentFeeJpy: vp.urgent,
-            vehicleTypeId
-          }
-        });
+        await client.query(
+          'INSERT INTO pricing_rules (id, from_area, to_area, trip_type, base_price_jpy, night_fee_jpy, urgent_fee_jpy, vehicle_type_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [generateId(), r.fromArea, r.toArea, r.tripType, vp.base, vp.night, vp.urgent, vehicleTypeId]
+        );
       }
     }
-  }
-
-main()
-  .then(async () => {
-    await prisma.$disconnect();
     console.log("Seed done.");
-  })
-  .catch(async (e) => {
+  } catch (e) {
     console.error(e);
-    await prisma.$disconnect();
     process.exit(1);
-  });
+  } finally {
+    client.release();
+    await pool.end();
+  }
+}
 
-
+main();
