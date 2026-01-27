@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { DEV_COOKIE } from "./src/lib/devMode";
-
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Protect admin pages + admin APIs so guests cannot access even if they know the URL.
-  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
-    const isDev = req.cookies.get(DEV_COOKIE)?.value === "1";
-    if (!isDev) {
-      // Hide existence: rewrite to 404 page.
-      const url = req.nextUrl.clone();
-      url.pathname = "/_not-found";
-      return NextResponse.rewrite(url);
+  // Protect admin APIs so guests cannot access even if they know the URL.
+  // Allow verify-secret so the login page can work.
+  if (pathname.startsWith("/api/admin") && !pathname.startsWith("/api/admin/verify-secret")) {
+    const isVerified = req.cookies.get("admin_verified")?.value === "true";
+    if (!isVerified) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
 
@@ -20,7 +16,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"]
+  matcher: ["/api/admin/:path*"]
 };
 
 

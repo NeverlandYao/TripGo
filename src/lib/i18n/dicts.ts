@@ -181,9 +181,9 @@ export const dicts: Record<Locale, Dict> = {
     "orders.cancelReasonDefault": "行程有变",
 
     "admin.title": "管理后台（MVP）",
-    "admin.subtitle": "用 ADMIN_TOKEN 登录，查看订单列表并调价/改状态",
+    "admin.subtitle": "用 ADMIN_SECRET_KEY 登录，查看订单列表并调价/改状态",
     "admin.loginTitle": "管理员登录（MVP：口令）",
-    "admin.loginSubtitle": "在你的 `.env` 中设置 ADMIN_TOKEN",
+    "admin.loginSubtitle": "在你的 `.env` 中设置 ADMIN_SECRET_KEY",
     "admin.enter": "进入后台",
     "admin.loading": "加载中...",
     "admin.orders": "订单列表",
@@ -203,7 +203,7 @@ export const dicts: Record<Locale, Dict> = {
     "admin.empty": "暂无数据。请先用用户端下单，然后回来加载。",
     "admin.adjustmentHint": "可为负数（优惠）或正数（加价）",
     "admin.notePlaceholder": "例如：深夜接送 +2000",
-    "admin.loginPlaceholder": "输入 ADMIN_TOKEN",
+    "admin.loginPlaceholder": "输入 ADMIN_SECRET_KEY",
     "admin.export": "导出订单",
     "admin.dateType": "日期类型",
     "admin.dateRange": "日期范围",
@@ -287,7 +287,7 @@ export const dicts: Record<Locale, Dict> = {
     "success.pickupLocation": "上车地点",
     "success.dropoffLocation": "下车地点",
     "success.viewOrders": "去「我的订单」查看/取消",
-    "success.mvpHint": "<strong>MVP 提醒：</strong>你可以在后台对该订单调价与改状态：进入 /admin 并输入 ADMIN_TOKEN。",
+    "success.mvpHint": "<strong>提醒：</strong>你可以在后台对该订单调价与改状态：进入 /admin 并输入 ADMIN_SECRET_KEY。",
 
     "status.PENDING_PAYMENT": "待支付",
     "status.PAID": "已支付",
@@ -333,12 +333,12 @@ export const dicts: Record<Locale, Dict> = {
     "api.serverError": "服务器错误",
     "api.passengersExceeded": "人数超过该车型座位数，请升级车型",
     "api.luggageExceeded": "行李数量超过该车型容量，请升级车型",
-    "api.adminTokenNotConfigured": "服务端未配置 ADMIN_TOKEN",
+    "api.adminTokenNotConfigured": "服务端未配置 ADMIN_SECRET_KEY",
     "api.unauthorized": "未授权",
     "api.pricingRuleExists": "该路线和车型的价格规则已存在",
     "api.pricingRuleNotFound": "价格规则不存在",
     "api.vehicleTypeNotFound": "车型不存在",
-    "dev.unlock": "输入你的 ADMIN_TOKEN 解锁后台入口（仅开发者可见）。"
+    "dev.unlock": "输入你的 ADMIN_SECRET_KEY 解锁后台入口（仅开发者可见）。"
   },
   en: {
     "brand.name": "TripGo",
@@ -506,9 +506,9 @@ export const dicts: Record<Locale, Dict> = {
     "orders.cancelReasonDefault": "Schedule change",
 
     "admin.title": "Admin (MVP)",
-    "admin.subtitle": "Login with ADMIN_TOKEN to manage orders and pricing",
-    "admin.loginTitle": "Admin login (token)",
-    "admin.loginSubtitle": "Set ADMIN_TOKEN in `.env`",
+    "admin.subtitle": "Login with ADMIN_SECRET_KEY to manage orders and pricing",
+    "admin.loginTitle": "Admin login",
+    "admin.loginSubtitle": "Set ADMIN_SECRET_KEY in `.env`",
     "admin.enter": "Enter",
     "admin.loading": "Loading...",
     "admin.orders": "Orders",
@@ -528,7 +528,7 @@ export const dicts: Record<Locale, Dict> = {
     "admin.empty": "No data. Please place an order first.",
     "admin.adjustmentHint": "Negative for discount, positive for extra fee",
     "admin.notePlaceholder": "e.g. Night service +2000",
-    "admin.loginPlaceholder": "Enter ADMIN_TOKEN",
+    "admin.loginPlaceholder": "Enter ADMIN_SECRET_KEY",
     "admin.export": "Export Orders",
     "admin.dateType": "Date Type",
     "admin.dateRange": "Date Range",
@@ -612,7 +612,7 @@ export const dicts: Record<Locale, Dict> = {
     "success.pickupLocation": "Pickup location",
     "success.dropoffLocation": "Drop-off location",
     "success.viewOrders": "Go to My Orders",
-    "success.mvpHint": "<strong>MVP Hint:</strong> You can adjust price/status in /admin with ADMIN_TOKEN.",
+    "success.mvpHint": "<strong>MVP Hint:</strong> You can adjust price/status in /admin with ADMIN_SECRET_KEY.",
 
     "status.PENDING_PAYMENT": "Pending Payment",
     "status.PAID": "Paid",
@@ -661,12 +661,12 @@ export const dicts: Record<Locale, Dict> = {
     "api.serverError": "Server error",
     "api.passengersExceeded": "Passengers exceed vehicle capacity. Please upgrade.",
     "api.luggageExceeded": "Luggage exceeds vehicle capacity. Please upgrade.",
-    "api.adminTokenNotConfigured": "ADMIN_TOKEN not configured on server",
+    "api.adminTokenNotConfigured": "ADMIN_SECRET_KEY not configured on server",
     "api.unauthorized": "Unauthorized",
     "api.pricingRuleExists": "Pricing rule already exists for this route and vehicle",
     "api.pricingRuleNotFound": "Pricing rule not found",
     "api.vehicleTypeNotFound": "Vehicle type not found",
-    "dev.unlock": "Enter your ADMIN_TOKEN to unlock admin access (Developer only)."
+    "dev.unlock": "Enter your ADMIN_SECRET_KEY to unlock admin access (Developer only)."
   }
 };
 

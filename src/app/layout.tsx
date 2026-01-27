@@ -4,7 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { MobileNav } from "@/components/MobileNav";
 import { getT } from "@/lib/i18n";
 import { cookies } from "next/headers";
-import { DEV_COOKIE } from "@/lib/devMode";
+import { isAdminVerified } from "@/lib/auth";
 import { getCurrency } from "@/lib/currency";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,11 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, t } = await getT();
-  const c = await cookies();
-  // 严格检查：只有当 DEV_COOKIE 存在且值为 "1" 时才显示管理后台
-  const devCookie = c.get(DEV_COOKIE);
-  const isDev = devCookie?.value === "1";
-  const showAdmin = isDev; // Only show when DEV_COOKIE is set to "1"
+  const showAdmin = await isAdminVerified();
   const currency = await getCurrency();
   return (
     <html lang={locale === "en" ? "en" : "zh-CN"}>

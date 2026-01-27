@@ -58,5 +58,11 @@ export async function isAdminVerified() {
 
 export async function setAdminVerified() {
   const cookieStore = await cookies();
-  cookieStore.set("admin_verified", "true", { httpOnly: true, secure: process.env.NODE_ENV === "production" });
+  const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  cookieStore.set("admin_verified", "true", { 
+    httpOnly: true, 
+    secure: process.env.NODE_ENV === "production",
+    expires,
+    path: "/"
+  });
 }

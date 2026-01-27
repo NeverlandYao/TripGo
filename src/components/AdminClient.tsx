@@ -142,6 +142,7 @@ type Labels = {
 export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; locale?: string }) {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<AdminRow[]>([]);
   const [currency, setCurrency] = useState<Currency>("JPY");
@@ -241,6 +242,8 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
         }
       } catch (err) {
         // Not verified
+      } finally {
+        setIsChecking(false);
       }
     };
     checkAdmin();
@@ -472,6 +475,7 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
         body: JSON.stringify({ secret: token })
       });
       if (res.ok) {
+        setToken("verified");
         if (activeTab === "orders") {
           load();
         } else {
@@ -486,6 +490,14 @@ export function AdminClient({ labels, locale = "zh-CN" }: { labels: Labels; loca
     } finally {
       setLoading(false);
     }
+  }
+
+  if (isChecking) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+      </div>
+    );
   }
 
   if (token !== "verified") {

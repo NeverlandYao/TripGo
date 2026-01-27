@@ -49,8 +49,8 @@ export function Navbar({
     }
   };
 
-  // 只在 /admin 页面显示管理后台链接
-  const shouldShowAdmin = showAdmin && pathname?.startsWith("/admin");
+  // 如果已经鉴权，则显示管理后台链接
+  const shouldShowAdmin = showAdmin;
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
